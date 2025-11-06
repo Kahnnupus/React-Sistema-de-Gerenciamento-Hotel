@@ -19,10 +19,20 @@ const Reserva = () => {
     roomType: "standard",
   });
 
+  const LIMITES = { standard: 1, suite: 2, deluxe: 4 };
+  const limiteHospedes = LIMITES[dadosReserva.roomType] || 1;
+  const qtdHospedes = Number(dadosReserva.guests || 0);
+  const excedeuLimite = qtdHospedes > limiteHospedes;
+
+  const MULT = { standard: 1.0, suite: 1.25, deluxe: 1.5 };
+  const precoBase = hotel?.precoPorNoite ?? 0;
+  const multiplicador = MULT[dadosReserva.roomType] ?? 1.0;
+  const precoNoiteAjustado = precoBase * multiplicador;
+
   const obterDataAmanha = () => {
     const amanha = new Date();
     amanha.setDate(amanha.getDate() + 1);
-    return amanha.toISOString().split('T')[0];
+    return amanha.toISOString().split("T")[0];
   };
 
   const handleInputChange = (e) => {
@@ -30,28 +40,46 @@ const Reserva = () => {
     setDadosReserva((prev) => ({ ...prev, [name]: value }));
   };
 
-  const calcularTotal = () => {
+  const calcularNoites = () => {
     if (!dadosReserva.checkIn || !dadosReserva.checkOut) return 0;
     const dataCheckIn = new Date(dadosReserva.checkIn);
     const dataCheckOut = new Date(dadosReserva.checkOut);
-    const diferencaTempo = Math.abs(dataCheckOut - dataCheckIn);
-    const diferencaDias = Math.ceil(diferencaTempo / (1000 * 60 * 60 * 24));
-    return diferencaDias * hotel.precoPorNoite;
+    const diffMs = Math.abs(dataCheckOut - dataCheckIn);
+    return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  };
+
+  const calcularTotal = () => {
+    const noites = calcularNoites();
+    if (noites <= 0) return 0;
+    return noites * precoNoiteAjustado;
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (dadosReserva.checkIn && dadosReserva.checkOut && dadosReserva.guests > 0) {
+
+    if (excedeuLimite) {
+      alert(
+        `Quantidade excede o limite de ${limiteHospedes} hóspede(s) para o quarto ${dadosReserva.roomType}.`
+      );
+      return;
+    }
+
+    if (dadosReserva.checkIn && dadosReserva.checkOut && qtdHospedes > 0) {
       addReservation({
         hotelId: hotel.id,
         hotelName: hotel.nome,
         ...dadosReserva,
+        guests: qtdHospedes,
+        precoBasePorNoite: precoBase,
+        multiplicadorTipo: multiplicador,
+        precoPorNoiteAplicado: precoNoiteAjustado,
         total: calcularTotal(),
         status: "confirmada",
       });
-  
-      const mensagemSucesso = document.createElement('div');
-      mensagemSucesso.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 opacity-0 transition-opacity duration-500';
+
+      const mensagemSucesso = document.createElement("div");
+      mensagemSucesso.className =
+        "fixed bottom-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 opacity-0 transition-opacity duration-500";
       mensagemSucesso.innerHTML = `
         <div class="flex items-center">
           <svg class="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 20 20">
@@ -63,13 +91,13 @@ const Reserva = () => {
       document.body.appendChild(mensagemSucesso);
 
       setTimeout(() => {
-        mensagemSucesso.classList.remove('opacity-0');
-        mensagemSucesso.classList.add('opacity-100');
+        mensagemSucesso.classList.remove("opacity-0");
+        mensagemSucesso.classList.add("opacity-100");
       }, 10);
 
       setTimeout(() => {
-        mensagemSucesso.classList.remove('opacity-100');
-        mensagemSucesso.classList.add('opacity-0');
+        mensagemSucesso.classList.remove("opacity-100");
+        mensagemSucesso.classList.add("opacity-0");
         setTimeout(() => {
           mensagemSucesso.remove();
         }, 500);
@@ -95,6 +123,8 @@ const Reserva = () => {
     );
   }
 
+  const noites = calcularNoites();
+
   return (
     <div className="animacao-fade-in max-w-2xl mx-auto">
       <h1 className="text-3xl font-bold text-purple-800 dark:text-purple-200 mb-6">
@@ -106,10 +136,10 @@ const Reserva = () => {
           Detalhes da Reserva
         </h2>
         <p className="text-purple-600 dark:text-purple-400 mb-2">
-           {hotel.localizacao}
+          {hotel.localizacao}
         </p>
         <p className="text-purple-600 dark:text-purple-400">
-          R$ {hotel.precoPorNoite.toFixed(2)} / noite
+          R$ {precoNoiteAjustado.toFixed(2)} / noite{" "}
         </p>
       </div>
 
@@ -158,9 +188,24 @@ const Reserva = () => {
             value={dadosReserva.guests}
             onChange={handleInputChange}
             min="1"
-            className="w-full px-3 py-2 border border-purple-300 dark:border-purple-600 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-purple-100"
+            max={limiteHospedes}
+            className={`w-full px-3 py-2 border ${
+              excedeuLimite
+                ? "border-red-500 focus:ring-red-500"
+                : "border-purple-300 focus:ring-purple-500"
+            } dark:border-purple-600 rounded-md focus:outline-none dark:bg-gray-700 dark:text-purple-100`}
             required
           />
+          {excedeuLimite ? (
+            <p className="text-red-500 text-sm mt-1">
+              O limite para o quarto {dadosReserva.roomType} é {limiteHospedes}{" "}
+              hóspede(s).
+            </p>
+          ) : (
+            <p className="text-purple-600 dark:text-purple-300 text-sm mt-1">
+              Limite: {limiteHospedes} hóspede(s).
+            </p>
+          )}
         </div>
 
         <div className="mb-6">
@@ -185,7 +230,7 @@ const Reserva = () => {
           </h3>
           <p className="text-purple-600 dark:text-purple-400 text-sm">
             {dadosReserva.checkIn && dadosReserva.checkOut
-              ? `${Math.ceil((new Date(dadosReserva.checkOut) - new Date(dadosReserva.checkIn)) / (1000 * 60 * 60 * 24))} noites`
+              ? `${noites} noite(s) · R$ ${precoNoiteAjustado.toFixed(2)}/noite`
               : "Selecione as datas para calcular o total"}
           </p>
         </div>
@@ -193,7 +238,12 @@ const Reserva = () => {
         <div className="flex space-x-4">
           <button
             type="submit"
-            className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
+            disabled={excedeuLimite}
+            className={`${
+              excedeuLimite
+                ? "bg-purple-600/50 cursor-not-allowed"
+                : "bg-purple-600 hover:bg-purple-700"
+            } text-white font-medium py-2 px-4 rounded-md transition-colors`}
           >
             Confirmar Reserva
           </button>
