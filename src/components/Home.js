@@ -7,9 +7,8 @@ const Home = () => {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    if (destination.trim() === "") return;
-
-    navigate(`/hoteis?city=${destination}`);
+    if (!destination.trim()) return;
+    navigate(`/hoteis?city=${encodeURIComponent(destination.trim())}`);
   };
 
   const highlights = [
@@ -107,7 +106,9 @@ const Home = () => {
               <button
                 key={d.name}
                 type="button"
-                onClick={() => navigate(`/hoteis?city=${d.name}`)}
+                onClick={() =>
+                  navigate(`/hoteis?city=${encodeURIComponent(d.name)}`)
+                }
                 className={`group relative overflow-hidden rounded-xl border border-purple-600 bg-gray-900/50 hover:bg-gray-900/70 text-left shadow-lg transition-all duration-500 ${col}`}
               >
                 <img

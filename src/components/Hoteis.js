@@ -1,19 +1,34 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useEffect, useMemo, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { useHotels } from "../contexts/HotelContext";
-import { useTheme } from "../contexts/ThemeContext";
+
+const normalize = (s) =>
+  (s || "")
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase();
 
 const Hoteis = () => {
   const { hotels } = useHotels();
+  const location = useLocation();
 
   const [searchTerm, setSearchTerm] = useState("");
 
-  const filteredHotels = hotels.filter(
-    (hotel) =>
-      hotel.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      hotel.localizacao.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      hotel.descricao.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const city = params.get("city") || "";
+    setSearchTerm(city);
+  }, [location.search]);
+
+  const filteredHotels = useMemo(() => {
+    const t = normalize(searchTerm);
+    if (!t) return hotels;
+    return hotels.filter((hotel) =>
+      [hotel.nome, hotel.localizacao, hotel.descricao].some((field) =>
+        normalize(field).includes(t)
+      )
+    );
+  }, [hotels, searchTerm]);
 
   const MULT = { standard: 1.0, suite: 1.25, deluxe: 1.5 };
 

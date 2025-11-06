@@ -5,9 +5,7 @@ import { useHotels } from "../contexts/HotelContext";
 const HotelDetalhes = () => {
   const { id } = useParams();
   const navegar = useNavigate();
-
   const { hotels } = useHotels();
-
   const hotel = hotels.find((h) => h.id === parseInt(id));
 
   if (!hotel) {
@@ -32,6 +30,16 @@ const HotelDetalhes = () => {
   const precoSuite = precoBase * MULT.suite;
   const precoDeluxe = precoBase * MULT.deluxe;
 
+  const guestsByHotel = {
+    1: 18,
+    2: 22,
+    3: 15,
+    4: 12,
+    5: 20,
+  };
+
+  const guestsCount = guestsByHotel[hotel.id] || 10;
+
   return (
     <div className="animacao-fade-in max-w-4xl mx-auto">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden border border-purple-200 dark:border-purple-700">
@@ -44,7 +52,14 @@ const HotelDetalhes = () => {
             />
           </div>
 
-          <div className="p-6 lg:p-8 border-t md:border-t-0 md:border-l border-purple-700/50 shadow-[inset_12px_0_24px_rgba(147,51,234,0.15)] rounded-r-lg">
+          <div className="relative p-6 lg:p-8 border-t md:border-t-0 md:border-l border-purple-700/50 shadow-[inset_12px_0_24px_rgba(147,51,234,0.15)] rounded-r-lg">
+            <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-black/25 dark:bg-white/10 px-2.5 py-0.5 rounded-full border border-purple-500/80">
+              <span className="inline-block w-2 h-2 rounded-full bg-green-400 animate-pulse shadow-sm" />
+              <span className="text-xs font-medium text-white/90">
+                {guestsCount} pessoas hospedadas
+              </span>
+            </div>
+
             <h1 className="text-3xl font-bold text-purple-800 dark:text-purple-200 mb-4">
               {hotel.nome}
             </h1>

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useHotels } from "../contexts/HotelContext";
 import { useReservations } from "../contexts/ReservationContext";
@@ -20,11 +20,35 @@ const Reserva = () => {
   });
 
   const LIMITES = { standard: 1, suite: 2, deluxe: 4 };
+  const MULT = { standard: 1.0, suite: 1.25, deluxe: 1.5 };
+
+  const DISP_HOTEL = {
+    1: { standard: 3, suite: 0, deluxe: 1 },
+    2: { standard: 0, suite: 2, deluxe: 2 },
+    3: { standard: 4, suite: 1, deluxe: 3 },
+  };
+
+  const dispAtual = DISP_HOTEL[hotel?.id] || {
+    standard: 2,
+    suite: 1,
+    deluxe: 1,
+  };
+
+  useEffect(() => {
+    if (!hotel) return;
+    const t = dadosReserva.roomType;
+    if (!dispAtual[t] || dispAtual[t] === 0) {
+      const primeiroDisponivel =
+        (Object.entries(dispAtual).find(([, q]) => q > 0) || [])[0] ||
+        "standard";
+      setDadosReserva((prev) => ({ ...prev, roomType: primeiroDisponivel }));
+    }
+  }, [hotel?.id]);
+
   const limiteHospedes = LIMITES[dadosReserva.roomType] || 1;
   const qtdHospedes = Number(dadosReserva.guests || 0);
   const excedeuLimite = qtdHospedes > limiteHospedes;
 
-  const MULT = { standard: 1.0, suite: 1.25, deluxe: 1.5 };
   const precoBase = hotel?.precoPorNoite ?? 0;
   const multiplicador = MULT[dadosReserva.roomType] ?? 1.0;
   const precoNoiteAjustado = precoBase * multiplicador;
@@ -54,16 +78,12 @@ const Reserva = () => {
     return noites * precoNoiteAjustado;
   };
 
+  const semVaga = (dispAtual[dadosReserva.roomType] || 0) === 0;
+
   const handleSubmit = (e) => {
     e.preventDefault();
-
-    if (excedeuLimite) {
-      alert(
-        `Quantidade excede o limite de ${limiteHospedes} hóspede(s) para o quarto ${dadosReserva.roomType}.`
-      );
-      return;
-    }
-
+    if (semVaga) return;
+    if (excedeuLimite) return;
     if (dadosReserva.checkIn && dadosReserva.checkOut && qtdHospedes > 0) {
       addReservation({
         hotelId: hotel.id,
@@ -139,7 +159,7 @@ const Reserva = () => {
           {hotel.localizacao}
         </p>
         <p className="text-purple-600 dark:text-purple-400">
-          R$ {precoNoiteAjustado.toFixed(2)} / noite{" "}
+          R$ {precoNoiteAjustado.toFixed(2)} / noite
         </p>
       </div>
 
@@ -208,7 +228,7 @@ const Reserva = () => {
           )}
         </div>
 
-        <div className="mb-6">
+        <div className="mb-2">
           <label className="block text-purple-700 dark:text-purple-300 mb-2 font-medium">
             Tipo de Quarto
           </label>
@@ -218,10 +238,31 @@ const Reserva = () => {
             onChange={handleInputChange}
             className="w-full px-3 py-2 border border-purple-300 dark:border-purple-600 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-purple-100"
           >
-            <option value="standard">Standard</option>
-            <option value="deluxe">Deluxe</option>
-            <option value="suite">Suíte</option>
+            <option value="standard" disabled={dispAtual.standard === 0}>
+              Standard{dispAtual.standard === 0 ? " (sem vagas)" : ""}
+            </option>
+            <option value="suite" disabled={dispAtual.suite === 0}>
+              Suíte{dispAtual.suite === 0 ? " (sem vagas)" : ""}
+            </option>
+            <option value="deluxe" disabled={dispAtual.deluxe === 0}>
+              Deluxe{dispAtual.deluxe === 0 ? " (sem vagas)" : ""}
+            </option>
           </select>
+        </div>
+
+        <div className="mb-6">
+          <div className="text-sm">
+            {dispAtual[dadosReserva.roomType] === 0 ? (
+              <p className="text-red-500">
+                Este tipo de quarto está sem vagas no momento.
+              </p>
+            ) : (
+              <p className="text-purple-600 dark:text-purple-300">
+                Disponibilidade para {dadosReserva.roomType}:{" "}
+                {dispAtual[dadosReserva.roomType]} quarto(s).
+              </p>
+            )}
+          </div>
         </div>
 
         <div className="bg-purple-50 dark:bg-gray-700 p-4 rounded-md mb-6">
@@ -238,9 +279,9 @@ const Reserva = () => {
         <div className="flex space-x-4">
           <button
             type="submit"
-            disabled={excedeuLimite}
+            disabled={excedeuLimite || semVaga}
             className={`${
-              excedeuLimite
+              excedeuLimite || semVaga
                 ? "bg-purple-600/50 cursor-not-allowed"
                 : "bg-purple-600 hover:bg-purple-700"
             } text-white font-medium py-2 px-4 rounded-md transition-colors`}
