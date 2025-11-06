@@ -1,19 +1,44 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useEffect, useMemo, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { useHotels } from "../contexts/HotelContext";
-import { useTheme } from "../contexts/ThemeContext";
+
+const normalize = (s) =>
+  (s || "")
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase();
+
+const getMinPrice = (hotel) => {
+  if (Array.isArray(hotel.roomTypes) && hotel.roomTypes.length > 0) {
+    return hotel.roomTypes.reduce(
+      (min, t) => Math.min(min, Number(t.preco || 0)),
+      Number(hotel.roomTypes[0].preco || 0)
+    );
+  }
+  return Number(hotel.precoPorNoite || 0);
+};
 
 const Hoteis = () => {
   const { hotels } = useHotels();
+  const location = useLocation();
 
   const [searchTerm, setSearchTerm] = useState("");
 
-  const filteredHotels = hotels.filter(
-    (hotel) =>
-      hotel.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      hotel.localizacao.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      hotel.descricao.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const city = params.get("city") || "";
+    setSearchTerm(city);
+  }, [location.search]);
+
+  const filteredHotels = useMemo(() => {
+    const t = normalize(searchTerm);
+    if (!t) return hotels;
+    return hotels.filter((hotel) =>
+      [hotel.nome, hotel.localizacao, hotel.descricao].some((field) =>
+        normalize(field).includes(t)
+      )
+    );
+  }, [hotels, searchTerm]);
 
   return (
     <div className="animacao-fade-in">
@@ -40,38 +65,50 @@ const Hoteis = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredHotels.map((hotel) => (
-          <div
-            key={hotel.id}
-            className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow border border-purple-200 dark:border-purple-700"
-          >
-            <img
-              src={hotel.imagem}
-              alt={hotel.nome}
-              className="w-full h-48 object-cover"
-            />
-            <div className="p-4">
-              <h2 className="text-xl font-semibold text-purple-800 dark:text-purple-200 mb-2">
-                {hotel.nome}
-              </h2>
-              <p className="text-purple-600 dark:text-purple-400 mb-2">
-                 {hotel.localizacao}
-              </p>
-              <p className="text-purple-600 dark:text-purple-400 mb-2">
-                {hotel.descricao}
-              </p>
-              <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 mb-4">
-                R$ {hotel.precoPorNoite.toFixed(2)} / noite
-              </p>
-              <Link
-                to={`/hoteis/${hotel.id}`}
-                className="inline-block bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
-              >
-                Ver Detalhes
-              </Link>
+        {filteredHotels.map((hotel) => {
+          const minPrice = getMinPrice(hotel);
+
+          return (
+            <div
+              key={hotel.id}
+              className="group bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow border border-purple-700/40"
+            >
+              <div className="relative">
+                <img
+                  src={hotel.imagem}
+                  alt={hotel.nome}
+                  className="w-full h-48 object-cover rounded-t-lg"
+                />
+                <div className="absolute -bottom-px left-0 right-0 h-[1.5px] bg-purple-500 shadow-[0_4px_12px_#9333ea80] group-hover:shadow-[0_10px_25px_#a855f7] transition-all duration-300" />
+              </div>
+
+              <div className="p-4">
+                <h2 className="text-xl font-semibold text-purple-800 dark:text-purple-200 mb-2">
+                  {hotel.nome}
+                </h2>
+                <p className="text-purple-600 dark:text-purple-400 mb-2">
+                  {hotel.localizacao}
+                </p>
+                {hotel.descricao && (
+                  <p className="text-purple-600 dark:text-purple-400 mb-3 line-clamp-2">
+                    {hotel.descricao}
+                  </p>
+                )}
+
+                <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                  A partir de R$ {minPrice.toFixed(2)} / noite
+                </p>
+
+                <Link
+                  to={`/hoteis/${hotel.id}`}
+                  className="inline-block mt-4 bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
+                >
+                  Ver Detalhes
+                </Link>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {filteredHotels.length === 0 && (
