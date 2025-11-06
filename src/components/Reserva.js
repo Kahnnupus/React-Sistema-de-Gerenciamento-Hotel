@@ -42,7 +42,7 @@ const Reserva = () => {
   }, [hotel]);
 
   const [dadosReserva, setDadosReserva] = useState({
-    checkIn: "",
+    checkIn: new Date().toISOString().split('T')[0],
     checkOut: "",
     guests: 1,
     roomType: "",
@@ -70,6 +70,11 @@ const Reserva = () => {
     const amanha = new Date();
     amanha.setDate(amanha.getDate() + 1);
     return amanha.toISOString().split("T")[0];
+  };
+  const obterDataHoje = () => {
+    const hoje = new Date();
+    hoje.setDate(hoje.getDate());
+    return hoje.toISOString().split("T")[0];
   };
 
   const handleInputChange = (e) => {
@@ -183,7 +188,7 @@ const Reserva = () => {
               name="checkIn"
               value={dadosReserva.checkIn}
               onChange={handleInputChange}
-              min={obterDataAmanha()}
+              min={obterDataHoje()}
               className="w-full px-3 py-2 border border-purple-300 dark:border-purple-600 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-purple-100"
               required
             />
