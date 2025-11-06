@@ -1,19 +1,39 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { useHotels } from "../contexts/HotelContext";
 import { useTheme } from "../contexts/ThemeContext";
 
 const Hoteis = () => {
   const { hotels } = useHotels();
+  const location = useLocation();
 
-  const [searchTerm, setSearchTerm] = useState("");
+  const params = new URLSearchParams(location.search);
+  const cityParam = params.get("city") || "";
 
-  const filteredHotels = hotels.filter(
-    (hotel) =>
-      hotel.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      hotel.localizacao.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      hotel.descricao.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
+  const [searchTerm, setSearchTerm] = useState(cityParam);
+
+  useEffect(() => {
+    if (cityParam) {
+      setSearchTerm(cityParam);
+    }
+  }, [cityParam]);
+
+  const norm = (s = "") =>
+    s
+      .toString()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim();
+
+  const filteredHotels = hotels.filter((hotel) => {
+    const termo = norm(searchTerm);
+    return (
+      norm(hotel.nome).includes(termo) ||
+      norm(hotel.localizacao).includes(termo) ||
+      norm(hotel.descricao).includes(termo)
+    );
+  });
 
   return (
     <div className="animacao-fade-in">
@@ -45,17 +65,22 @@ const Hoteis = () => {
             key={hotel.id}
             className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow border border-purple-200 dark:border-purple-700"
           >
-            <img
-              src={hotel.imagem}
-              alt={hotel.nome}
-              className="w-full h-48 object-cover"
-            />
+            <div className="relative">
+              <img
+                src={hotel.imagem}
+                alt={hotel.nome}
+                className="w-full h-48 object-cover rounded-t-lg"
+              />
+
+              <div className="absolute -bottom-px left-0 right-0 h-[1.5px] bg-purple-500 shadow-[0_6px_18px_#9333ea80]" />
+            </div>
+
             <div className="p-4">
               <h2 className="text-xl font-semibold text-purple-800 dark:text-purple-200 mb-2">
                 {hotel.nome}
               </h2>
               <p className="text-purple-600 dark:text-purple-400 mb-2">
-                 {hotel.localizacao}
+                {hotel.localizacao}
               </p>
               <p className="text-purple-600 dark:text-purple-400 mb-2">
                 {hotel.descricao}

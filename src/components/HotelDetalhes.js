@@ -29,20 +29,20 @@ const HotelDetalhes = () => {
   return (
     <div className="animacao-fade-in max-w-4xl mx-auto">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden border border-purple-200 dark:border-purple-700">
-        <div className="md:flex">
-          <div className="md:w-1/2">
+        <div className="grid md:grid-cols-2 md:min-h-[460px]">
+          <div className="h-full">
             <img
               src={hotel.imagem}
               alt={hotel.nome}
-              className="w-full h-96 object-cover"
+              className="w-full h-full object-cover rounded-l-lg"
             />
           </div>
-          <div className="md:w-1/2 p-6">
+          <div className="p-6 lg:p-8 border-t md:border-t-0 md:border-l border-purple-700/50 shadow-[inset_12px_0_24px_rgba(147,51,234,0.15)] rounded-r-lg">
             <h1 className="text-3xl font-bold text-purple-800 dark:text-purple-200 mb-4">
               {hotel.nome}
             </h1>
             <p className="text-purple-600 dark:text-purple-400 mb-2">
-               {hotel.localizacao}
+              {hotel.localizacao}
             </p>
             <p className="text-4xl font-bold text-purple-600 dark:text-purple-400 mb-4">
               R$ {hotel.precoPorNoite.toFixed(2)} / noite
