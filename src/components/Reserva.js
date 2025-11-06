@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useHotels } from "../contexts/HotelContext";
 import { useReservations } from "../contexts/ReservationContext";
@@ -10,48 +10,61 @@ const Reserva = () => {
   const { hotels } = useHotels();
   const { addReservation } = useReservations();
 
-  const hotel = hotels.find((h) => h.id === parseInt(id));
+  const hotel = hotels.find((h) => h.id === parseInt(id, 10));
+
+  const tiposPreparados = useMemo(() => {
+    if (hotel?.roomTypes && hotel.roomTypes.length > 0) {
+      return hotel.roomTypes.map((t, i) => ({
+        nome: t.nome || `Quarto ${i + 1}`,
+        preco: Number(t.preco || 0),
+        quantidade: Number(t.quantidade ?? 0),
+        limiteHospedes: Number(t.limiteHospedes ?? 1),
+      }));
+    }
+
+    const base = Number(hotel?.precoPorNoite || 0);
+    if (!base) return [];
+    return [
+      { nome: "Standard", preco: base, quantidade: 3, limiteHospedes: 1 },
+      {
+        nome: "Suíte",
+        preco: +(base * 1.25).toFixed(2),
+        quantidade: 2,
+        limiteHospedes: 2,
+      },
+      {
+        nome: "Deluxe",
+        preco: +(base * 1.5).toFixed(2),
+        quantidade: 1,
+        limiteHospedes: 4,
+      },
+    ];
+  }, [hotel]);
 
   const [dadosReserva, setDadosReserva] = useState({
     checkIn: "",
     checkOut: "",
     guests: 1,
-    roomType: "standard",
+    roomType: "",
   });
 
-  const LIMITES = { standard: 1, suite: 2, deluxe: 4 };
-  const MULT = { standard: 1.0, suite: 1.25, deluxe: 1.5 };
-
-  const DISP_HOTEL = {
-    1: { standard: 3, suite: 0, deluxe: 1 },
-    2: { standard: 0, suite: 2, deluxe: 2 },
-    3: { standard: 4, suite: 1, deluxe: 3 },
-  };
-
-  const dispAtual = DISP_HOTEL[hotel?.id] || {
-    standard: 2,
-    suite: 1,
-    deluxe: 1,
-  };
-
   useEffect(() => {
-    if (!hotel) return;
-    const t = dadosReserva.roomType;
-    if (!dispAtual[t] || dispAtual[t] === 0) {
-      const primeiroDisponivel =
-        (Object.entries(dispAtual).find(([, q]) => q > 0) || [])[0] ||
-        "standard";
-      setDadosReserva((prev) => ({ ...prev, roomType: primeiroDisponivel }));
-    }
+    if (!tiposPreparados.length) return;
+    const comVaga =
+      tiposPreparados.find((t) => t.quantidade > 0) || tiposPreparados[0];
+    setDadosReserva((prev) => ({ ...prev, roomType: comVaga.nome }));
   }, [hotel?.id]);
 
-  const limiteHospedes = LIMITES[dadosReserva.roomType] || 1;
-  const qtdHospedes = Number(dadosReserva.guests || 0);
-  const excedeuLimite = qtdHospedes > limiteHospedes;
+  const tipoSelecionado =
+    tiposPreparados.find((t) => t.nome === dadosReserva.roomType) ||
+    tiposPreparados[0];
 
-  const precoBase = hotel?.precoPorNoite ?? 0;
-  const multiplicador = MULT[dadosReserva.roomType] ?? 1.0;
-  const precoNoiteAjustado = precoBase * multiplicador;
+  const limiteHospedes = tipoSelecionado?.limiteHospedes ?? 1;
+  const qtdDisp = tipoSelecionado?.quantidade ?? 0;
+  const precoNoite = Number(tipoSelecionado?.preco || 0);
+
+  const excedeuLimite = Number(dadosReserva.guests || 0) > limiteHospedes;
+  const semVaga = qtdDisp === 0;
 
   const obterDataAmanha = () => {
     const amanha = new Date();
@@ -74,57 +87,50 @@ const Reserva = () => {
 
   const calcularTotal = () => {
     const noites = calcularNoites();
-    if (noites <= 0) return 0;
-    return noites * precoNoiteAjustado;
+    return noites > 0 ? noites * precoNoite : 0;
   };
-
-  const semVaga = (dispAtual[dadosReserva.roomType] || 0) === 0;
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (semVaga) return;
-    if (excedeuLimite) return;
-    if (dadosReserva.checkIn && dadosReserva.checkOut && qtdHospedes > 0) {
-      addReservation({
-        hotelId: hotel.id,
-        hotelName: hotel.nome,
-        ...dadosReserva,
-        guests: qtdHospedes,
-        precoBasePorNoite: precoBase,
-        multiplicadorTipo: multiplicador,
-        precoPorNoiteAplicado: precoNoiteAjustado,
-        total: calcularTotal(),
-        status: "confirmada",
-      });
+    if (!hotel || semVaga || excedeuLimite) return;
 
-      const mensagemSucesso = document.createElement("div");
-      mensagemSucesso.className =
-        "fixed bottom-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 opacity-0 transition-opacity duration-500";
-      mensagemSucesso.innerHTML = `
-        <div class="flex items-center">
-          <svg class="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-          </svg>
-          Reserva realizada com sucesso!
-        </div>
-      `;
-      document.body.appendChild(mensagemSucesso);
+    const noites = calcularNoites();
+    if (noites <= 0) return;
 
-      setTimeout(() => {
-        mensagemSucesso.classList.remove("opacity-0");
-        mensagemSucesso.classList.add("opacity-100");
-      }, 10);
+    addReservation({
+      hotelId: hotel.id,
+      hotelName: hotel.nome,
+      ...dadosReserva,
+      guests: Number(dadosReserva.guests || 0),
+      roomType: tipoSelecionado?.nome,
+      precoPorNoiteAplicado: precoNoite,
+      total: calcularTotal(),
+      status: "confirmada",
+    });
 
-      setTimeout(() => {
-        mensagemSucesso.classList.remove("opacity-100");
-        mensagemSucesso.classList.add("opacity-0");
-        setTimeout(() => {
-          mensagemSucesso.remove();
-        }, 500);
-      }, 3000);
+    const mensagemSucesso = document.createElement("div");
+    mensagemSucesso.className =
+      "fixed bottom-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 opacity-0 transition-opacity duration-500";
+    mensagemSucesso.innerHTML = `
+      <div class="flex items-center">
+        <svg class="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+        </svg>
+        Reserva realizada com sucesso!
+      </div>
+    `;
+    document.body.appendChild(mensagemSucesso);
+    setTimeout(() => {
+      mensagemSucesso.classList.remove("opacity-0");
+      mensagemSucesso.classList.add("opacity-100");
+    }, 10);
+    setTimeout(() => {
+      mensagemSucesso.classList.remove("opacity-100");
+      mensagemSucesso.classList.add("opacity-0");
+      setTimeout(() => mensagemSucesso.remove(), 500);
+    }, 3000);
 
-      navegar("/hoteis");
-    }
+    navegar("/hoteis");
   };
 
   if (!hotel) {
@@ -159,7 +165,7 @@ const Reserva = () => {
           {hotel.localizacao}
         </p>
         <p className="text-purple-600 dark:text-purple-400">
-          R$ {precoNoiteAjustado.toFixed(2)} / noite
+          R$ {precoNoite.toFixed(2)} / noite
         </p>
       </div>
 
@@ -192,6 +198,7 @@ const Reserva = () => {
               name="checkOut"
               value={dadosReserva.checkOut}
               onChange={handleInputChange}
+              min={dadosReserva.checkIn || obterDataAmanha()}
               className="w-full px-3 py-2 border border-purple-300 dark:border-purple-600 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-purple-100"
               required
             />
@@ -218,8 +225,7 @@ const Reserva = () => {
           />
           {excedeuLimite ? (
             <p className="text-red-500 text-sm mt-1">
-              O limite para o quarto {dadosReserva.roomType} é {limiteHospedes}{" "}
-              hóspede(s).
+              O limite para este quarto é {limiteHospedes} hóspede(s).
             </p>
           ) : (
             <p className="text-purple-600 dark:text-purple-300 text-sm mt-1">
@@ -238,28 +244,29 @@ const Reserva = () => {
             onChange={handleInputChange}
             className="w-full px-3 py-2 border border-purple-300 dark:border-purple-600 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-purple-100"
           >
-            <option value="standard" disabled={dispAtual.standard === 0}>
-              Standard{dispAtual.standard === 0 ? " (sem vagas)" : ""}
-            </option>
-            <option value="suite" disabled={dispAtual.suite === 0}>
-              Suíte{dispAtual.suite === 0 ? " (sem vagas)" : ""}
-            </option>
-            <option value="deluxe" disabled={dispAtual.deluxe === 0}>
-              Deluxe{dispAtual.deluxe === 0 ? " (sem vagas)" : ""}
-            </option>
+            {tiposPreparados.map((t, i) => (
+              <option
+                key={`${t.nome}-${i}`}
+                value={t.nome}
+                disabled={t.quantidade === 0}
+              >
+                {t.nome} — R$ {Number(t.preco || 0).toFixed(2)} / noite
+                {t.quantidade === 0 ? " (Sem vagas)" : ""}
+              </option>
+            ))}
           </select>
         </div>
 
         <div className="mb-6">
           <div className="text-sm">
-            {dispAtual[dadosReserva.roomType] === 0 ? (
+            {semVaga ? (
               <p className="text-red-500">
                 Este tipo de quarto está sem vagas no momento.
               </p>
             ) : (
               <p className="text-purple-600 dark:text-purple-300">
-                Disponibilidade para {dadosReserva.roomType}:{" "}
-                {dispAtual[dadosReserva.roomType]} quarto(s).
+                {qtdDisp} quarto(s) disponível(is) • Limite: {limiteHospedes}{" "}
+                hóspede(s).
               </p>
             )}
           </div>
@@ -271,7 +278,7 @@ const Reserva = () => {
           </h3>
           <p className="text-purple-600 dark:text-purple-400 text-sm">
             {dadosReserva.checkIn && dadosReserva.checkOut
-              ? `${noites} noite(s) · R$ ${precoNoiteAjustado.toFixed(2)}/noite`
+              ? `${noites} noite(s) · R$ ${precoNoite.toFixed(2)}/noite`
               : "Selecione as datas para calcular o total"}
           </p>
         </div>

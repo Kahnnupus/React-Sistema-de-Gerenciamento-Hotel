@@ -75,7 +75,6 @@ const Register = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-purple-50 dark:bg-gray-900 relative py-8">
-      {/* Botão Light/Dark no topo direito */}
       <div className="absolute top-4 right-4">
         <button
           onClick={toggleTheme}

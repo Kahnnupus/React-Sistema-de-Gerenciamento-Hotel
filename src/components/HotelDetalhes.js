@@ -6,7 +6,8 @@ const HotelDetalhes = () => {
   const { id } = useParams();
   const navegar = useNavigate();
   const { hotels } = useHotels();
-  const hotel = hotels.find((h) => h.id === parseInt(id));
+
+  const hotel = hotels.find((h) => h.id === parseInt(id, 10));
 
   if (!hotel) {
     return (
@@ -24,85 +25,118 @@ const HotelDetalhes = () => {
     );
   }
 
-  const MULT = { standard: 1.0, suite: 1.25, deluxe: 1.5 };
-  const precoBase = Number(hotel.precoPorNoite || 0);
-  const precoStd = precoBase * MULT.standard;
-  const precoSuite = precoBase * MULT.suite;
-  const precoDeluxe = precoBase * MULT.deluxe;
-
-  const guestsByHotel = {
-    1: 18,
-    2: 22,
-    3: 15,
-    4: 12,
-    5: 20,
+  const guestCountFor = (h) => {
+    const key = `${h.id}-${h.nome}-${h.localizacao}`;
+    let hash = 0;
+    for (let i = 0; i < key.length; i++)
+      hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
+    return 10 + (hash % 36); // 10..45
   };
+  const liveGuests = guestCountFor(hotel);
+  const labelGuests =
+    liveGuests === 1 ? "pessoa hospedada" : "pessoas hospedadas";
 
-  const guestsCount = guestsByHotel[hotel.id] || 10;
+  const tiposParaMostrar =
+    Array.isArray(hotel.roomTypes) && hotel.roomTypes.length > 0
+      ? hotel.roomTypes
+      : (() => {
+          const base = Number(hotel.precoPorNoite || 0);
+          if (!base) return [];
+          return [
+            { nome: "Standard", preco: base, quantidade: 3, limiteHospedes: 1 },
+            {
+              nome: "Suíte",
+              preco: +(base * 1.25).toFixed(2),
+              quantidade: 2,
+              limiteHospedes: 2,
+            },
+            {
+              nome: "Deluxe",
+              preco: +(base * 1.5).toFixed(2),
+              quantidade: 1,
+              limiteHospedes: 4,
+            },
+          ];
+        })();
 
   return (
-    <div className="animacao-fade-in max-w-4xl mx-auto">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden border border-purple-200 dark:border-purple-700">
-        <div className="grid md:grid-cols-2 md:min-h-[460px]">
-          <div className="h-full">
+    <div className="animacao-fade-in max-w-6xl mx-auto">
+      <div className="relative bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden border border-purple-700/40">
+        <div className="md:flex md:min-h-[520px]">
+          <div className="md:w-1/2 relative md:min-h-[520px]">
             <img
               src={hotel.imagem}
               alt={hotel.nome}
-              className="w-full h-full object-cover rounded-l-lg"
+              className="absolute inset-0 w-full h-full object-cover"
             />
+
+            <div className="absolute top-0 right-0 h-full w-[2px] bg-purple-500 shadow-[0_0_20px_#a855f7]"></div>
           </div>
 
-          <div className="relative p-6 lg:p-8 border-t md:border-t-0 md:border-l border-purple-700/50 shadow-[inset_12px_0_24px_rgba(147,51,234,0.15)] rounded-r-lg">
-            <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-black/25 dark:bg-white/10 px-2.5 py-0.5 rounded-full border border-purple-500/80">
-              <span className="inline-block w-2 h-2 rounded-full bg-green-400 animate-pulse shadow-sm" />
-              <span className="text-xs font-medium text-white/90">
-                {guestsCount} pessoas hospedadas
+          <div className="md:w-1/2 p-6 relative md:min-h-[520px] flex flex-col">
+            <div className="absolute top-4 right-4">
+              <span className="inline-flex items-center gap-2 text-xs px-3 py-1 rounded-full bg-gray-700/30 dark:bg-gray-700 text-purple-100 border border-purple-500/40">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                {liveGuests} {labelGuests}
               </span>
             </div>
 
-            <h1 className="text-3xl font-bold text-purple-800 dark:text-purple-200 mb-4">
+            <h1 className="text-3xl font-bold text-purple-800 dark:text-purple-200 mb-2">
               {hotel.nome}
             </h1>
-            <p className="text-purple-600 dark:text-purple-400 mb-2">
+            <p className="text-purple-600 dark:text-purple-400 mb-4">
               {hotel.localizacao}
             </p>
 
-            <div className="bg-purple-50/60 dark:bg-gray-700/60 border border-purple-200/60 dark:border-purple-700/60 rounded-md p-4 mb-4">
-              <p className="text-purple-700 dark:text-purple-200 font-semibold">
+            <div className="mb-5 rounded-lg border border-purple-500/30 bg-purple-50/10 dark:bg-gray-900/30 p-4">
+              <h3 className="text-base font-semibold text-purple-800 dark:text-purple-200 mb-2">
                 Preços por tipo de quarto:
-              </p>
-              <ul className="mt-2 text-purple-700 dark:text-purple-300 space-y-1">
-                <li>
-                  Standard: <strong>R$ {precoStd.toFixed(2)}</strong> / noite
-                </li>
-                <li>
-                  Suíte: <strong>R$ {precoSuite.toFixed(2)}</strong> / noite
-                </li>
-                <li>
-                  Deluxe: <strong>R$ {precoDeluxe.toFixed(2)}</strong> / noite
-                </li>
-              </ul>
+              </h3>
+              {tiposParaMostrar.length > 0 ? (
+                <ul className="space-y-1">
+                  {tiposParaMostrar.map((t, i) => (
+                    <li
+                      key={`${t.nome}-${i}`}
+                      className="text-purple-700 dark:text-purple-300"
+                    >
+                      <span className="font-medium">{t.nome}:</span>{" "}
+                      <span className="font-bold">
+                        R$ {Number(t.preco || 0).toFixed(2)}
+                      </span>{" "}
+                      <span className="text-sm opacity-80">/ noite</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-purple-700 dark:text-purple-300">
+                  Este hotel ainda não possui tipos de quarto cadastrados.
+                </p>
+              )}
             </div>
 
-            <p className="text-purple-600 dark:text-purple-400 mb-6">
-              {hotel.descricao}
-            </p>
+            {hotel.descricao && (
+              <p className="text-purple-600 dark:text-purple-400 mb-5">
+                {hotel.descricao}
+              </p>
+            )}
 
-            {Array.isArray(hotel.comodidades) &&
-              hotel.comodidades.length > 0 && (
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-purple-800 dark:text-purple-200 mb-2">
-                    Comodidades
-                  </h3>
-                  <ul className="list-disc list-inside text-purple-700 dark:text-purple-300">
-                    {hotel.comodidades.map((comodidade, index) => (
-                      <li key={index}>{comodidade}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+            {hotel.comodidades?.length > 0 && (
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-purple-800 dark:text-purple-200 mb-2">
+                  Comodidades
+                </h3>
+                <ul className="list-disc list-inside text-purple-700 dark:text-purple-300 space-y-1">
+                  {hotel.comodidades.map((c, i) => (
+                    <li key={`${c}-${i}`}>{c}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
-            <div className="space-x-4">
+            <div className="mt-auto space-x-4">
               <Link
                 to={`/reserva/${hotel.id}`}
                 className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-3 px-6 rounded-md transition-colors"
@@ -118,6 +152,8 @@ const HotelDetalhes = () => {
             </div>
           </div>
         </div>
+
+        <div className="pointer-events-none absolute inset-0 rounded-lg ring-1 ring-purple-500/60 shadow-[0_0_25px_#9333ea66]"></div>
       </div>
     </div>
   );

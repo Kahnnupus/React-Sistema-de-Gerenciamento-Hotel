@@ -151,10 +151,10 @@ function AppContent() {
                   <Link
                     to="/dashboard/perfil"
                     onClick={() => setOpenMenu(false)}
-                    className={`block px-4 py-2 text-sm hover:bg-purple-100 ${
+                    className={`block px-4 py-2 text-sm hover:bg-gray-700 ${
                       theme === "dark"
                         ? "text-purple-200 hover:bg-gray-700"
-                        : "text-purple-800"
+                        : "text-purple-800 hover:bg-purple-100"
                     }`}
                   >
                     Meu perfil
@@ -162,10 +162,10 @@ function AppContent() {
                   <Link
                     to="/dashboard/configuracoes"
                     onClick={() => setOpenMenu(false)}
-                    className={`block px-4 py-2 text-sm hover:bg-purple-100 ${
+                    className={`block px-4 py-2 text-sm hover:bg-gray-700 ${
                       theme === "dark"
                         ? "text-purple-200 hover:bg-gray-700"
-                        : "text-purple-800"
+                        : "text-purple-800  hover:bg-purple-100"
                     }`}
                   >
                     Configurações

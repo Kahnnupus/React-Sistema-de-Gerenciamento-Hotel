@@ -8,6 +8,16 @@ const normalize = (s) =>
     .replace(/\p{Diacritic}/gu, "")
     .toLowerCase();
 
+const getMinPrice = (hotel) => {
+  if (Array.isArray(hotel.roomTypes) && hotel.roomTypes.length > 0) {
+    return hotel.roomTypes.reduce(
+      (min, t) => Math.min(min, Number(t.preco || 0)),
+      Number(hotel.roomTypes[0].preco || 0)
+    );
+  }
+  return Number(hotel.precoPorNoite || 0);
+};
+
 const Hoteis = () => {
   const { hotels } = useHotels();
   const location = useLocation();
@@ -29,8 +39,6 @@ const Hoteis = () => {
       )
     );
   }, [hotels, searchTerm]);
-
-  const MULT = { standard: 1.0, suite: 1.25, deluxe: 1.5 };
 
   return (
     <div className="animacao-fade-in">
@@ -58,10 +66,7 @@ const Hoteis = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredHotels.map((hotel) => {
-          const precoBase = Number(hotel.precoPorNoite || 0);
-          const precoStd = precoBase * MULT.standard;
-          const precoSuite = precoBase * MULT.suite;
-          const precoDeluxe = precoBase * MULT.deluxe;
+          const minPrice = getMinPrice(hotel);
 
           return (
             <div
@@ -84,12 +89,14 @@ const Hoteis = () => {
                 <p className="text-purple-600 dark:text-purple-400 mb-2">
                   {hotel.localizacao}
                 </p>
-                <p className="text-purple-600 dark:text-purple-400 mb-2">
-                  {hotel.descricao}
-                </p>
+                {hotel.descricao && (
+                  <p className="text-purple-600 dark:text-purple-400 mb-3 line-clamp-2">
+                    {hotel.descricao}
+                  </p>
+                )}
 
                 <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                  A partir de R$ {precoStd.toFixed(2)} / noite
+                  A partir de R$ {minPrice.toFixed(2)} / noite
                 </p>
 
                 <Link
