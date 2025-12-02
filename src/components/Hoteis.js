@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useHotels } from "../contexts/HotelContext";
+import { Hotel, Plus, Search, MapPin, Eye, DollarSign } from "lucide-react";
 
 const normalize = (s) =>
   (s || "")
@@ -9,6 +10,14 @@ const normalize = (s) =>
     .toLowerCase();
 
 const getMinPrice = (hotel) => {
+  // Backend returns tipos_quartos
+  if (Array.isArray(hotel.tipos_quartos) && hotel.tipos_quartos.length > 0) {
+    return hotel.tipos_quartos.reduce(
+      (min, t) => Math.min(min, Number(t.preco_por_noite || 0)),
+      Number(hotel.tipos_quartos[0].preco_por_noite || 0)
+    );
+  }
+  // Fallback for old format
   if (Array.isArray(hotel.roomTypes) && hotel.roomTypes.length > 0) {
     return hotel.roomTypes.reduce(
       (min, t) => Math.min(min, Number(t.preco || 0)),
@@ -43,24 +52,29 @@ const Hoteis = () => {
   return (
     <div className="animacao-fade-in">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-purple-800 dark:text-purple-200">
+        <h1 className="text-3xl font-bold text-purple-800 dark:text-purple-200 flex items-center gap-2">
+          <Hotel className="w-8 h-8" />
           Hotéis Disponíveis
         </h1>
         <Link
           to="/add-hotel"
-          className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
+          className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-md transition-colors flex items-center gap-2"
         >
+          <Plus className="w-4 h-4" />
           Adicionar Hotel
         </Link>
       </div>
 
-      <div className="mb-6">
+      <div className="mb-6 relative max-w-md">
+        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <Search className="h-5 w-5 text-gray-400" />
+        </div>
         <input
           type="text"
           placeholder="Buscar hotéis..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full max-w-md px-4 py-2 border border-purple-300 dark:border-purple-600 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-purple-100"
+          className="w-full pl-10 pr-4 py-2 border border-purple-300 dark:border-purple-600 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-purple-100"
         />
       </div>
 
@@ -86,7 +100,8 @@ const Hoteis = () => {
                 <h2 className="text-xl font-semibold text-purple-800 dark:text-purple-200 mb-2">
                   {hotel.nome}
                 </h2>
-                <p className="text-purple-600 dark:text-purple-400 mb-2">
+                <p className="text-purple-600 dark:text-purple-400 mb-2 flex items-center gap-1">
+                  <MapPin className="w-4 h-4" />
                   {hotel.localizacao}
                 </p>
                 {hotel.descricao && (
@@ -95,14 +110,15 @@ const Hoteis = () => {
                   </p>
                 )}
 
-                <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 flex items-center gap-1">
                   A partir de R$ {minPrice.toFixed(2)} / noite
                 </p>
 
                 <Link
                   to={`/hoteis/${hotel.id}`}
-                  className="inline-block mt-4 bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
+                  className="inline-flex items-center gap-2 mt-4 bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
                 >
+                  <Eye className="w-4 h-4" />
                   Ver Detalhes
                 </Link>
               </div>

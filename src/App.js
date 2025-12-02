@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -11,22 +11,32 @@ import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { HotelProvider } from "./contexts/HotelContext";
 import { ReservationProvider } from "./contexts/ReservationContext";
+import { FeedbackProvider } from "./contexts/FeedbackContext";
 import Home from "./components/Home";
 import Hoteis from "./components/Hoteis";
 import AddHotel from "./components/AddHotel";
 import HotelDetalhes from "./components/HotelDetalhes";
 import Reserva from "./components/Reserva";
 import Dashboard from "./components/Dashboard";
+import AdminDashboard from "./components/AdminDashboard";
+import AdminUsuarios from "./components/AdminUsuarios";
+import AdminHoteis from "./components/AdminHoteis";
+import AdminHoteisPendentes from "./components/AdminHoteisPendentes";
+import MinhasReservas from "./components/MinhasReservas";
+import MeusHoteis from "./components/MeusHoteis";
+import HotelReservas from "./components/HotelReservas";
+import EditarReserva from "./components/EditarReserva";
 import Perfil from "./components/Perfil";
 import Configuracoes from "./components/Configuracoes";
 import NotFound from "./components/NotFound";
 import Login from "./components/Login";
 import Register from "./components/Register";
+import { Settings, User, Calendar, Hotel, Shield } from "lucide-react";
 import "./App.css";
 
 function AppContent() {
   const { theme, toggleTheme } = useTheme();
-  const { user, logout, isLoading } = useAuth();
+  const { user, logout, isLoading, isAdmin } = useAuth();
   const [openMenu, setOpenMenu] = useState(false);
   const menuRef = useRef(null);
 
@@ -75,9 +85,8 @@ function AppContent() {
                 <img
                   src="/favicon.png"
                   alt="Logo"
-                  className={`h-8 w-auto transition-all duration-300 ${
-                    theme === "light" ? "invert" : ""
-                  }`}
+                  className={`h-8 w-auto transition-all duration-300 ${theme === "light" ? "invert" : ""
+                    }`}
                 />
               </Link>
             </div>
@@ -112,11 +121,10 @@ function AppContent() {
               <button
                 onClick={() => setOpenMenu((v) => !v)}
                 aria-label="Abrir menu"
-                className={`p-2 rounded-md border ${
-                  theme === "dark"
-                    ? "border-purple-700 hover:bg-gray-700"
-                    : "border-purple-300 hover:bg-purple-100"
-                }`}
+                className={`p-2 rounded-md border ${theme === "dark"
+                  ? "border-purple-700 hover:bg-gray-700"
+                  : "border-purple-300 hover:bg-purple-100"
+                  }`}
               >
                 <span
                   className={`block w-5 h-0.5 ${theme === "dark" ? "bg-purple-300" : "bg-purple-700"} mb-1`}
@@ -131,43 +139,80 @@ function AppContent() {
 
               <button
                 onClick={toggleTheme}
-                className={`px-3 py-2 rounded-md transition-colors font-medium ${
-                  theme === "dark"
-                    ? "bg-gray-700 text-gray-200 hover:bg-gray-600"
-                    : "bg-purple-200 text-purple-800 hover:bg-purple-300"
-                }`}
+                className={`px-3 py-2 rounded-md transition-colors font-medium ${theme === "dark"
+                  ? "bg-gray-700 text-gray-200 hover:bg-gray-600"
+                  : "bg-purple-200 text-purple-800 hover:bg-purple-300"
+                  }`}
               >
                 {theme === "light" ? "Dark" : "Light"}
               </button>
 
               {openMenu && (
                 <div
-                  className={`absolute top-full right-0 mt-2 w-48 rounded-lg shadow-lg border z-50 ${
-                    theme === "dark"
-                      ? "bg-gray-800 border-purple-700"
-                      : "bg-white border-purple-200"
-                  }`}
+                  className={`absolute top-full right-0 mt-2 w-48 rounded-lg shadow-lg border z-50 ${theme === "dark"
+                    ? "bg-gray-800 border-purple-700"
+                    : "bg-white border-purple-200"
+                    }`}
                 >
+                  {isAdmin() && (
+                    <>
+                      <Link
+                        to="/admin-dashboard"
+                        onClick={() => setOpenMenu(false)}
+                        className={`block px-4 py-2 text-sm font-bold border-b flex items-center gap-2 ${theme === "dark"
+                          ? "text-yellow-300 hover:bg-gray-700 border-yellow-700"
+                          : "text-yellow-700 hover:bg-yellow-50 border-yellow-200"
+                          }`}
+                      >
+                        <Shield className="w-4 h-4" />
+                        Painel Admin
+                      </Link>
+                    </>
+                  )}
+                  <Link
+                    to="/minhas-reservas"
+                    onClick={() => setOpenMenu(false)}
+                    className={`block px-4 py-2 text-sm flex items-center gap-2 ${theme === "dark"
+                      ? "text-purple-200 hover:bg-gray-700"
+                      : "text-purple-800 hover:bg-purple-100"
+                      }`}
+                  >
+                    <Calendar className="w-4 h-4" />
+                    Minhas Reservas
+                  </Link>
+                  {!isAdmin() && (
+                    <Link
+                      to="/meus-hoteis"
+                      onClick={() => setOpenMenu(false)}
+                      className={`block px-4 py-2 text-sm flex items-center gap-2 ${theme === "dark"
+                        ? "text-purple-200 hover:bg-gray-700"
+                        : "text-purple-800 hover:bg-purple-100"
+                        }`}
+                    >
+                      <Hotel className="w-4 h-4" />
+                      Meus Hotéis
+                    </Link>
+                  )}
                   <Link
                     to="/dashboard/perfil"
                     onClick={() => setOpenMenu(false)}
-                    className={`block px-4 py-2 text-sm hover:bg-gray-700 ${
-                      theme === "dark"
-                        ? "text-purple-200 hover:bg-gray-700"
-                        : "text-purple-800 hover:bg-purple-100"
-                    }`}
+                    className={`block px-4 py-2 text-sm hover:bg-gray-700 flex items-center gap-2 ${theme === "dark"
+                      ? "text-purple-200 hover:bg-gray-700"
+                      : "text-purple-800 hover:bg-purple-100"
+                      }`}
                   >
+                    <User className="w-4 h-4" />
                     Meu perfil
                   </Link>
                   <Link
                     to="/dashboard/configuracoes"
                     onClick={() => setOpenMenu(false)}
-                    className={`block px-4 py-2 text-sm hover:bg-gray-700 ${
-                      theme === "dark"
-                        ? "text-purple-200 hover:bg-gray-700"
-                        : "text-purple-800  hover:bg-purple-100"
-                    }`}
+                    className={`block px-4 py-2 text-sm hover:bg-gray-700 flex items-center gap-2 ${theme === "dark"
+                      ? "text-purple-200 hover:bg-gray-700"
+                      : "text-purple-800  hover:bg-purple-100"
+                      }`}
                   >
+                    <Settings className="w-4 h-4" />
                     Configurações
                   </Link>
                   <button
@@ -175,11 +220,10 @@ function AppContent() {
                       setOpenMenu(false);
                       logout();
                     }}
-                    className={`w-full text-left px-4 py-2 text-sm ${
-                      theme === "dark"
-                        ? "text-red-300 hover:bg-gray-700"
-                        : "text-red-700 hover:bg-red-50"
-                    }`}
+                    className={`w-full text-left px-4 py-2 text-sm ${theme === "dark"
+                      ? "text-red-300 hover:bg-gray-700"
+                      : "text-red-700 hover:bg-red-50"
+                      }`}
                   >
                     Sair da conta
                   </button>
@@ -196,7 +240,16 @@ function AppContent() {
             <Route path="/add-hotel" element={<AddHotel />} />
             <Route path="/hoteis/:id" element={<HotelDetalhes />} />
             <Route path="/reserva/:id" element={<Reserva />} />
+            <Route path="/minhas-reservas" element={<MinhasReservas />} />
+            <Route path="/meus-hoteis" element={<MeusHoteis />} />
+            <Route path="/meus-hoteis/:hotelId/reservas" element={<HotelReservas />} />
+            <Route path="/editar-reserva/:reservationId" element={<EditarReserva />} />
+            <Route path="/admin-dashboard" element={<AdminDashboard />} />
+            <Route path="/admin/usuarios" element={<AdminUsuarios />} />
+            <Route path="/admin/hoteis" element={<AdminHoteis />} />
+            <Route path="/admin/hoteis-pendentes" element={<AdminHoteisPendentes />} />
             <Route path="/dashboard" element={<Dashboard />}>
+              <Route path="admin" element={<AdminDashboard />} />
               <Route path="perfil" element={<Perfil />} />
               <Route path="configuracoes" element={<Configuracoes />} />
             </Route>
@@ -220,7 +273,9 @@ function App() {
       <ThemeProvider>
         <HotelProvider>
           <ReservationProvider>
-            <AppContent />
+            <FeedbackProvider>
+              <AppContent />
+            </FeedbackProvider>
           </ReservationProvider>
         </HotelProvider>
       </ThemeProvider>

@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
+import API_BASE_URL from "../config/api";
 
 const HotelContext = createContext();
 
@@ -11,78 +12,118 @@ export const useHotels = () => {
 };
 
 export const HotelProvider = ({ children }) => {
-  const [hotels, setHotels] = useState([
-    {
-      id: 1,
-      nome: "Hotel Paradiso",
-      localizacao: "Rio de Janeiro, Brasil",
-      precoPorNoite: 250.0,
-      descricao: "Hotel luxuoso com vista para o mar, piscina infinita e spa.",
-      imagem:
-        "https://media-cdn.tripadvisor.com/media/photo-s/0d/5a/9e/12/orla-copacabana-hotel.jpg",
-      comodidades: [
-        "Wi-Fi gratuito",
-        "Piscina",
-        "Spa",
-        "Restaurante",
-        "Vista para o mar",
-      ],
-      quartosDisponiveis: 20,
-    },
-    {
-      id: 2,
-      nome: "Mountain Resort",
-      localizacao: "Curitiba, Brasil",
-      precoPorNoite: 180.0,
-      descricao: "Resort nas montanhas com chalés aconchegantes e lareira.",
-      imagem:
-        "https://mcities.com.br/curitiba/wp-content/uploads/sites/3/2021/06/varshana-boutique-hotel-1024x682.jpg",
-      comodidades: [
-        "Wi-Fi gratuito",
-        "Lareira",
-        "Café da manhã incluído",
-        "Trilhas",
-        "Vista para as montanhas",
-      ],
-      quartosDisponiveis: 15,
-    },
-    {
-      id: 3,
-      nome: "Urban Hotel",
-      localizacao: "São Paulo, Brasil",
-      precoPorNoite: 150.0,
-      descricao:
-        "Hotel moderno no centro da cidade, próximo a pontos turísticos.",
-      imagem:
-        "https://viagem.cnnbrasil.com.br/wp-content/uploads/sites/5/2025/01/suite-W-HOTEL-SAO-PAULO-SAULO-TAFARELO.jpg?w=1024",
-      comodidades: [
-        "Wi-Fi gratuito",
-        "Academia",
-        "Café da manhã incluído",
-        "Localização central",
-        "Estacionamento",
-      ],
-      quartosDisponiveis: 30,
-    },
-  ]);
+  const [hotels, setHotels] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const addHotel = (hotel) => {
-    setHotels((prev) => [...prev, { ...hotel, id: Date.now() }]);
+  // Carregar hotéis da API e configurar auto-refresh
+  useEffect(() => {
+    fetchHotels();
+
+    // Auto-refresh a cada 30 segundos
+    const interval = setInterval(() => {
+      fetchHotels();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetchHotels = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/hotels`);
+      const data = await response.json();
+
+      if (data.success) {
+        setHotels(data.hotels);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar hotéis:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const updateHotel = (id, updatedHotel) => {
-    setHotels((prev) =>
-      prev.map((h) => (h.id === id ? { ...h, ...updatedHotel } : h))
-    );
+  const addHotel = async (hotel) => {
+    try {
+      const token = localStorage.getItem('token');
+
+      const response = await fetch(`${API_BASE_URL}/hotels`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(hotel),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        await fetchHotels(); // Recarregar lista
+        return { success: true, message: data.message };
+      }
+
+      return { success: false, message: data.message || 'Erro ao cadastrar hotel' };
+    } catch (error) {
+      console.error('Erro ao adicionar hotel:', error);
+      return { success: false, message: 'Erro ao conectar com o servidor' };
+    }
   };
 
-  const deleteHotel = (id) => {
-    setHotels((prev) => prev.filter((h) => h.id !== id));
+  const updateHotel = async (id, updatedHotel) => {
+    try {
+      const token = localStorage.getItem('token');
+
+      const response = await fetch(`${API_BASE_URL}/hotels/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(updatedHotel),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        await fetchHotels(); // Recarregar lista
+        return { success: true, message: data.message };
+      }
+
+      return { success: false, message: data.message || 'Erro ao atualizar hotel' };
+    } catch (error) {
+      console.error('Erro ao atualizar hotel:', error);
+      return { success: false, message: 'Erro ao conectar com o servidor' };
+    }
+  };
+
+  const deleteHotel = async (id) => {
+    try {
+      const token = localStorage.getItem('token');
+
+      const response = await fetch(`${API_BASE_URL}/hotels/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        await fetchHotels(); // Recarregar lista
+        return { success: true, message: data.message };
+      }
+
+      return { success: false, message: data.message || 'Erro ao deletar hotel' };
+    } catch (error) {
+      console.error('Erro ao deletar hotel:', error);
+      return { success: false, message: 'Erro ao conectar com o servidor' };
+    }
   };
 
   return (
     <HotelContext.Provider
-      value={{ hotels, addHotel, updateHotel, deleteHotel }}
+      value={{ hotels, addHotel, updateHotel, deleteHotel, loading, refreshHotels: fetchHotels }}
     >
       {children}
     </HotelContext.Provider>

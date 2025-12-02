@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import { useTheme } from "../contexts/ThemeContext";
+import { Sun, Moon, UserPlus, User, Mail, Phone, MapPin, Lock } from "lucide-react";
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -40,7 +41,7 @@ const Register = () => {
     if (fieldErrors[name]) setFieldErrors({ ...fieldErrors, [name]: "" });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     const newFieldErrors = {};
@@ -69,8 +70,13 @@ const Register = () => {
       foto: "https://static.vecteezy.com/system/resources/thumbnails/009/292/244/small/default-avatar-icon-of-social-media-user-vector.jpg",
     };
 
-    if (register(userData)) navigate("/");
-    else setError("Email já cadastrado");
+    const result = await register(userData);
+
+    if (result.success) {
+      navigate("/");
+    } else {
+      setError(result.message || "Email já cadastrado");
+    }
   };
 
   return (
@@ -78,13 +84,12 @@ const Register = () => {
       <div className="absolute top-4 right-4">
         <button
           onClick={toggleTheme}
-          className={`px-4 py-2 rounded-md transition-colors font-medium ${
-            theme === "dark"
+          className={`px-4 py-2 rounded-md transition-colors font-medium ${theme === "dark"
               ? "bg-gray-700 text-gray-200 hover:bg-gray-600"
               : "bg-purple-200 text-purple-800 hover:bg-purple-300"
-          }`}
+            }`}
         >
-          {theme === "light" ? "Dark" : "Light"}
+          {theme === "light" ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
         </button>
       </div>
 
@@ -101,7 +106,8 @@ const Register = () => {
 
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
-            <label className="block text-purple-700 dark:text-purple-300 mb-2">
+            <label className="block text-purple-700 dark:text-purple-300 mb-2 flex items-center gap-1">
+              <User className="w-4 h-4" />
               Nome
             </label>
             <input
@@ -115,7 +121,8 @@ const Register = () => {
           </div>
 
           <div className="mb-4">
-            <label className="block text-purple-700 dark:text-purple-300 mb-2">
+            <label className="block text-purple-700 dark:text-purple-300 mb-2 flex items-center gap-1">
+              <Mail className="w-4 h-4" />
               Email
             </label>
             <input
@@ -132,7 +139,8 @@ const Register = () => {
           </div>
 
           <div className="mb-4">
-            <label className="block text-purple-700 dark:text-purple-300 mb-2">
+            <label className="block text-purple-700 dark:text-purple-300 mb-2 flex items-center gap-1">
+              <Phone className="w-4 h-4" />
               Telefone
             </label>
             <input
@@ -151,7 +159,8 @@ const Register = () => {
           </div>
 
           <div className="mb-4">
-            <label className="block text-purple-700 dark:text-purple-300 mb-2">
+            <label className="block text-purple-700 dark:text-purple-300 mb-2 flex items-center gap-1">
+              <MapPin className="w-4 h-4" />
               Endereço
             </label>
             <textarea
@@ -165,7 +174,8 @@ const Register = () => {
           </div>
 
           <div className="mb-4">
-            <label className="block text-purple-700 dark:text-purple-300 mb-2">
+            <label className="block text-purple-700 dark:text-purple-300 mb-2 flex items-center gap-1">
+              <Lock className="w-4 h-4" />
               Senha
             </label>
             <input
@@ -179,7 +189,8 @@ const Register = () => {
           </div>
 
           <div className="mb-6">
-            <label className="block text-purple-700 dark:text-purple-300 mb-2">
+            <label className="block text-purple-700 dark:text-purple-300 mb-2 flex items-center gap-1">
+              <Lock className="w-4 h-4" />
               Confirmar Senha
             </label>
             <input
@@ -194,8 +205,9 @@ const Register = () => {
 
           <button
             type="submit"
-            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
+            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-md transition-colors flex items-center justify-center gap-2"
           >
+            <UserPlus className="w-4 h-4" />
             Registrar
           </button>
         </form>

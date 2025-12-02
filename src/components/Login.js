@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import { useTheme } from "../contexts/ThemeContext";
+import { Sun, Moon, LogIn, Mail, Lock } from "lucide-react";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -11,12 +12,16 @@ const Login = () => {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (login(email, password)) {
+    setError("");
+
+    const result = await login(email, password);
+
+    if (result.success) {
       navigate("/");
     } else {
-      setError("Email ou senha incorretos");
+      setError(result.message || "Email ou senha incorretos");
     }
   };
 
@@ -25,13 +30,12 @@ const Login = () => {
       <div className="absolute top-4 right-4">
         <button
           onClick={toggleTheme}
-          className={`px-4 py-2 rounded-md transition-colors font-medium ${
-            theme === "dark"
+          className={`px-4 py-2 rounded-md transition-colors font-medium ${theme === "dark"
               ? "bg-gray-700 text-gray-200 hover:bg-gray-600"
               : "bg-purple-200 text-purple-800 hover:bg-purple-300"
-          }`}
+            }`}
         >
-          {theme === "light" ? "Dark" : "Light"}
+          {theme === "light" ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
         </button>
       </div>
 
@@ -48,7 +52,8 @@ const Login = () => {
 
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
-            <label className="block text-purple-700 dark:text-purple-300 mb-2">
+            <label className="block text-purple-700 dark:text-purple-300 mb-2 flex items-center gap-1">
+              <Mail className="w-4 h-4" />
               Email
             </label>
             <input
@@ -61,7 +66,8 @@ const Login = () => {
           </div>
 
           <div className="mb-6">
-            <label className="block text-purple-700 dark:text-purple-300 mb-2">
+            <label className="block text-purple-700 dark:text-purple-300 mb-2 flex items-center gap-1">
+              <Lock className="w-4 h-4" />
               Senha
             </label>
             <input
@@ -75,8 +81,9 @@ const Login = () => {
 
           <button
             type="submit"
-            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
+            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-md transition-colors flex items-center justify-center gap-2"
           >
+            <LogIn className="w-4 h-4" />
             Entrar
           </button>
         </form>

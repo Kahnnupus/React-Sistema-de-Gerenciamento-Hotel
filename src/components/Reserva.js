@@ -3,9 +3,13 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useHotels } from "../contexts/HotelContext";
 import { useReservations } from "../contexts/ReservationContext";
 
+import { useFeedback } from "../contexts/FeedbackContext";
+import { ArrowLeft, MapPin, DollarSign, Calendar, Users, BedDouble, Check } from "lucide-react";
+
 const Reserva = () => {
   const { id } = useParams();
   const navegar = useNavigate();
+  const { showSuccess } = useFeedback();
 
   const { hotels } = useHotels();
   const { addReservation } = useReservations();
@@ -13,6 +17,16 @@ const Reserva = () => {
   const hotel = hotels.find((h) => h.id === parseInt(id, 10));
 
   const tiposPreparados = useMemo(() => {
+    // Backend returns tipos_quartos
+    if (hotel?.tipos_quartos && hotel.tipos_quartos.length > 0) {
+      return hotel.tipos_quartos.map((t, i) => ({
+        nome: t.nome || `Quarto ${i + 1}`,
+        preco: Number(t.preco_por_noite || 0),
+        quantidade: Number(t.quantidade_disponivel ?? 0),
+        limiteHospedes: Number(t.capacidade_pessoas ?? 1),
+      }));
+    }
+    // Fallback for old format
     if (hotel?.roomTypes && hotel.roomTypes.length > 0) {
       return hotel.roomTypes.map((t, i) => ({
         nome: t.nome || `Quarto ${i + 1}`,
@@ -53,7 +67,7 @@ const Reserva = () => {
     const comVaga =
       tiposPreparados.find((t) => t.quantidade > 0) || tiposPreparados[0];
     setDadosReserva((prev) => ({ ...prev, roomType: comVaga.nome }));
-  }, [hotel?.id]);
+  }, [hotel?.id, tiposPreparados]);
 
   const tipoSelecionado =
     tiposPreparados.find((t) => t.nome === dadosReserva.roomType) ||
@@ -95,14 +109,14 @@ const Reserva = () => {
     return noites > 0 ? noites * precoNoite : 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!hotel || semVaga || excedeuLimite) return;
 
     const noites = calcularNoites();
     if (noites <= 0) return;
 
-    addReservation({
+    const success = await addReservation({
       hotelId: hotel.id,
       hotelName: hotel.nome,
       ...dadosReserva,
@@ -113,28 +127,11 @@ const Reserva = () => {
       status: "confirmada",
     });
 
-    const mensagemSucesso = document.createElement("div");
-    mensagemSucesso.className =
-      "fixed bottom-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 opacity-0 transition-opacity duration-500";
-    mensagemSucesso.innerHTML = `
-      <div class="flex items-center">
-        <svg class="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 20 20">
-          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-        </svg>
-        Reserva realizada com sucesso!
-      </div>
-    `;
-    document.body.appendChild(mensagemSucesso);
-    setTimeout(() => {
-      mensagemSucesso.classList.remove("opacity-0");
-      mensagemSucesso.classList.add("opacity-100");
-    }, 10);
-    setTimeout(() => {
-      mensagemSucesso.classList.remove("opacity-100");
-      mensagemSucesso.classList.add("opacity-0");
-      setTimeout(() => mensagemSucesso.remove(), 500);
-    }, 3000);
+    if (!success) {
+      return; // Error already shown by addReservation
+    }
 
+    showSuccess('Sucesso', 'Reserva realizada com sucesso!');
     navegar("/hoteis");
   };
 
@@ -146,8 +143,9 @@ const Reserva = () => {
         </h1>
         <button
           onClick={() => navegar(-1)}
-          className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
+          className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-md transition-colors flex items-center gap-2 mx-auto"
         >
+          <ArrowLeft className="w-4 h-4" />
           Voltar
         </button>
       </div>
@@ -166,10 +164,12 @@ const Reserva = () => {
         <h2 className="text-xl font-semibold text-purple-800 dark:text-purple-200 mb-4">
           Detalhes da Reserva
         </h2>
-        <p className="text-purple-600 dark:text-purple-400 mb-2">
+        <p className="text-purple-600 dark:text-purple-400 mb-2 flex items-center gap-1">
+          <MapPin className="w-4 h-4" />
           {hotel.localizacao}
         </p>
-        <p className="text-purple-600 dark:text-purple-400">
+        <p className="text-purple-600 dark:text-purple-400 flex items-center gap-1">
+          <DollarSign className="w-4 h-4" />
           R$ {precoNoite.toFixed(2)} / noite
         </p>
       </div>
@@ -180,7 +180,8 @@ const Reserva = () => {
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>
-            <label className="block text-purple-700 dark:text-purple-300 mb-2 font-medium">
+            <label className="block text-purple-700 dark:text-purple-300 mb-2 font-medium flex items-center gap-1">
+              <Calendar className="w-4 h-4" />
               Check-in
             </label>
             <input
@@ -195,7 +196,8 @@ const Reserva = () => {
           </div>
 
           <div>
-            <label className="block text-purple-700 dark:text-purple-300 mb-2 font-medium">
+            <label className="block text-purple-700 dark:text-purple-300 mb-2 font-medium flex items-center gap-1">
+              <Calendar className="w-4 h-4" />
               Check-out
             </label>
             <input
@@ -211,7 +213,8 @@ const Reserva = () => {
         </div>
 
         <div className="mb-4">
-          <label className="block text-purple-700 dark:text-purple-300 mb-2 font-medium">
+          <label className="block text-purple-700 dark:text-purple-300 mb-2 font-medium flex items-center gap-1">
+            <Users className="w-4 h-4" />
             Número de Hóspedes
           </label>
           <input
@@ -221,11 +224,10 @@ const Reserva = () => {
             onChange={handleInputChange}
             min="1"
             max={limiteHospedes}
-            className={`w-full px-3 py-2 border ${
-              excedeuLimite
-                ? "border-red-500 focus:ring-red-500"
-                : "border-purple-300 focus:ring-purple-500"
-            } dark:border-purple-600 rounded-md focus:outline-none dark:bg-gray-700 dark:text-purple-100`}
+            className={`w-full px-3 py-2 border ${excedeuLimite
+              ? "border-red-500 focus:ring-red-500"
+              : "border-purple-300 focus:ring-purple-500"
+              } dark:border-purple-600 rounded-md focus:outline-none dark:bg-gray-700 dark:text-purple-100`}
             required
           />
           {excedeuLimite ? (
@@ -240,7 +242,8 @@ const Reserva = () => {
         </div>
 
         <div className="mb-2">
-          <label className="block text-purple-700 dark:text-purple-300 mb-2 font-medium">
+          <label className="block text-purple-700 dark:text-purple-300 mb-2 font-medium flex items-center gap-1">
+            <BedDouble className="w-4 h-4" />
             Tipo de Quarto
           </label>
           <select
@@ -292,11 +295,10 @@ const Reserva = () => {
           <button
             type="submit"
             disabled={excedeuLimite || semVaga}
-            className={`${
-              excedeuLimite || semVaga
-                ? "bg-purple-600/50 cursor-not-allowed"
-                : "bg-purple-600 hover:bg-purple-700"
-            } text-white font-medium py-2 px-4 rounded-md transition-colors`}
+            className={`${excedeuLimite || semVaga
+              ? "bg-purple-600/50 cursor-not-allowed"
+              : "bg-purple-600 hover:bg-purple-700"
+              } text-white font-medium py-2 px-4 rounded-md transition-colors`}
           >
             Confirmar Reserva
           </button>

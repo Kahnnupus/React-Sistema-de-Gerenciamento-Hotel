@@ -1,6 +1,7 @@
 import React from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useHotels } from "../contexts/HotelContext";
+import { ArrowLeft, MapPin, DollarSign, Check, Calendar, Users, BedDouble, AlertTriangle } from "lucide-react";
 
 const HotelDetalhes = () => {
   const { id } = useParams();
@@ -17,8 +18,9 @@ const HotelDetalhes = () => {
         </h1>
         <button
           onClick={() => navegar(-1)}
-          className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
+          className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-md transition-colors flex items-center gap-2 mx-auto"
         >
+          <ArrowLeft className="w-4 h-4" />
           Voltar
         </button>
       </div>
@@ -36,10 +38,18 @@ const HotelDetalhes = () => {
   const labelGuests =
     liveGuests === 1 ? "pessoa hospedada" : "pessoas hospedadas";
 
+  // Backend returns tipos_quartos with preco_por_noite, quantidade_disponivel, capacidade_pessoas
   const tiposParaMostrar =
-    Array.isArray(hotel.roomTypes) && hotel.roomTypes.length > 0
-      ? hotel.roomTypes
-      : (() => {
+    Array.isArray(hotel.tipos_quartos) && hotel.tipos_quartos.length > 0
+      ? hotel.tipos_quartos.map(t => ({
+        nome: t.nome,
+        preco: t.preco_por_noite,
+        quantidade: t.quantidade_disponivel,
+        limiteHospedes: t.capacidade_pessoas
+      }))
+      : Array.isArray(hotel.roomTypes) && hotel.roomTypes.length > 0
+        ? hotel.roomTypes
+        : (() => {
           const base = Number(hotel.precoPorNoite || 0);
           if (!base) return [];
           return [
@@ -87,12 +97,14 @@ const HotelDetalhes = () => {
             <h1 className="text-3xl font-bold text-purple-800 dark:text-purple-200 mb-2">
               {hotel.nome}
             </h1>
-            <p className="text-purple-600 dark:text-purple-400 mb-4">
+            <p className="text-purple-600 dark:text-purple-400 mb-4 flex items-center gap-1">
+              <MapPin className="w-4 h-4" />
               {hotel.localizacao}
             </p>
 
             <div className="mb-5 rounded-lg border border-purple-500/30 bg-purple-50/10 dark:bg-gray-900/30 p-4">
-              <h3 className="text-base font-semibold text-purple-800 dark:text-purple-200 mb-2">
+              <h3 className="text-base font-semibold text-purple-800 dark:text-purple-200 mb-2 flex items-center gap-2">
+                <BedDouble className="w-4 h-4" />
                 Preços por tipo de quarto:
               </h3>
               {tiposParaMostrar.length > 0 ? (
@@ -125,28 +137,34 @@ const HotelDetalhes = () => {
 
             {hotel.comodidades?.length > 0 && (
               <div className="mb-6">
-                <h3 className="text-lg font-semibold text-purple-800 dark:text-purple-200 mb-2">
+                <h3 className="text-lg font-semibold text-purple-800 dark:text-purple-200 mb-2 flex items-center gap-2">
+                  <Check className="w-5 h-5" />
                   Comodidades
                 </h3>
-                <ul className="list-disc list-inside text-purple-700 dark:text-purple-300 space-y-1">
+                <ul className="grid grid-cols-2 gap-2 text-purple-700 dark:text-purple-300">
                   {hotel.comodidades.map((c, i) => (
-                    <li key={`${c}-${i}`}>{c}</li>
+                    <li key={`${c}-${i}`} className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 bg-purple-500 rounded-full"></span>
+                      {c}
+                    </li>
                   ))}
                 </ul>
               </div>
             )}
 
-            <div className="mt-auto space-x-4">
+            <div className="mt-auto flex gap-4">
               <Link
                 to={`/reserva/${hotel.id}`}
-                className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-3 px-6 rounded-md transition-colors"
+                className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-3 px-6 rounded-md transition-colors flex items-center gap-2"
               >
+                <Calendar className="w-5 h-5" />
                 Reservar Agora
               </Link>
               <button
                 onClick={() => navegar(-1)}
-                className="bg-gray-600 hover:bg-gray-700 text-white font-medium py-3 px-6 rounded-md transition-colors"
+                className="bg-gray-600 hover:bg-gray-700 text-white font-medium py-3 px-6 rounded-md transition-colors flex items-center gap-2"
               >
+                <ArrowLeft className="w-5 h-5" />
                 Voltar
               </button>
             </div>
