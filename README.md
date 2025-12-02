@@ -1,8 +1,6 @@
-# 🚀 Guia de Início Rápido - Versão 2.0
+# Guia de Início Rápido - Versão 2.0
 
-## ⚡ Inicialização em 3 Passos
-
-### 1️⃣ Inicializar o Banco de Dados
+### 1 Inicializar o Banco de Dados
 
 ```bash
 cd backend
@@ -12,14 +10,14 @@ npm run init-db
 
 **Você verá:**
 ```
-✅ Conectado ao MySQL
-✅ Script SQL executado com sucesso
-✅ Usuário administrador criado
-   Email: admin@hotel.com
-   Senha: root
+Conectado ao MySQL
+Script SQL executado com sucesso
+Usuário administrador criado
+Email: admin@hotel.com
+Senha: root
 ```
 
-### 2️⃣ Iniciar o Backend
+### 2 Iniciar o Backend
 
 ```bash
 npm start
@@ -27,11 +25,11 @@ npm start
 
 **Você verá:**
 ```
-🚀 Servidor rodando na porta 5000
-📍 URL: http://localhost:5000
+Servidor rodando na porta 5000
+URL: http://localhost:5000
 ```
 
-### 3️⃣ Iniciar o Frontend
+### 3 Iniciar o Frontend
 
 Em **outro terminal**:
 
@@ -45,7 +43,7 @@ O navegador abrirá automaticamente em `http://localhost:3000`
 
 ---
 
-## 👤 Acessos Disponíveis
+## Acessos Disponíveis
 
 ### Administrador Padrão
 ```
@@ -74,7 +72,7 @@ Senha: root
 
 ---
 
-## 🏨 Fluxo de Cadastro de Hotel
+## Fluxo de Cadastro de Hotel
 
 ### Para Usuários
 
@@ -104,9 +102,9 @@ Senha: root
 
 ---
 
-## 📋 Principais Mudanças da V2
+## Principais Mudanças da V2
 
-### ✅ O que foi adicionado
+### O que foi adicionado
 
 1. **Sistema de Tipos de Quartos**
    - Cada hotel tem seus próprios tipos
@@ -130,7 +128,7 @@ Senha: root
    - Login mostra erros específicos
    - Registro mostra erros específicos
 
-### ❌ O que foi removido
+### O que foi removido
 
 - Sistema de Produtos
 - Carrinho de Compras
@@ -177,21 +175,6 @@ Senha: root
 4. Envie
 5. Mensagem salva no banco de dados
 
----
-
-## ❗ Problemas Comuns
-
-### "Erro ao conectar com MySQL"
-
-**Solução:**
-```bash
-# Linux/Mac
-sudo service mysql start
-
-# Windows
-net start MySQL
-```
-
 ### "Hotel não aparece na listagem"
 
 **Motivo:** Hotel não foi aprovado pelo administrador
@@ -221,7 +204,7 @@ net start MySQL
 
 ---
 
-## 📊 Estrutura de Navegação
+## Estrutura de Navegação
 
 ### Para Usuários Normais
 ```
@@ -247,7 +230,7 @@ net start MySQL
 
 ---
 
-## 🎯 Casos de Uso Principais
+## Casos de Uso Principais
 
 ### Caso 1: Proprietário de Hotel
 
@@ -277,17 +260,3 @@ net start MySQL
 
 ---
 
-## 📞 Suporte
-
-### Documentação Completa
-- `MUDANCAS_V2.md` - Todas as mudanças detalhadas
-- `README_MYSQL.md` - Documentação técnica original
-
-### Logs e Debug
-- Backend: Verifique o terminal onde rodou `npm start`
-- Frontend: Abra o console do navegador (F12)
-- Banco: Use MySQL Workbench ou linha de comando
-
----
-
-**Sistema pronto para uso! Boa sorte! 🎉**
