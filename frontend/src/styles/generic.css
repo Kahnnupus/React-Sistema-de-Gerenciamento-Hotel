@@ -1,0 +1,51 @@
+/* Estilos Genéricos e Reset Suave */
+
+:root {
+    --transition-speed: 0.3s;
+}
+
+/* Smooth Scrolling */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Melhoria na renderização de fontes */
+body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Box Sizing Universal (seguro) */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+/* Utilitários de Layout Genéricos */
+.container-generic {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
+.flex-center {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.text-center {
+    text-align: center;
+}
+
+/* Botões Genéricos (Base) */
+.btn-generic {
+    cursor: pointer;
+    transition: transform var(--transition-speed), background-color var(--transition-speed), box-shadow var(--transition-speed);
+}
+
+.btn-generic:active {
+    transform: scale(0.98);
+}

@@ -1,64 +1,56 @@
-# Sistema de Gerenciamento de Hotel - Versão 3.0 (MongoDB)
+# Sistema de Gerenciamento de Hotel (MongoDB)
 
-Este projeto foi migrado de MySQL para MongoDB. Siga as instruções abaixo para rodar o projeto.
+Bem-vindo ao Sistema de Gerenciamento de Hotel. Este projeto é uma aplicação completa para gerenciamento de reservas, hotéis e usuários, utilizando **React** no frontend e **Node.js/Express** com **MongoDB** no backend.
 
 ## Pré-requisitos
 
--   [Node.js](https://nodejs.org/) (v14 ou superior)
--   [MongoDB](https://www.mongodb.com/try/download/community) (rodando localmente na porta 27017 ou configure a URI no `.env`)
+Antes de começar, certifique-se de ter instalado em sua máquina:
 
-## Configuração e Instalação
+-   [Node.js](https://nodejs.org/) (Versão 14 ou superior)
+-   [MongoDB](https://www.mongodb.com/try/download/community) (Deve estar rodando localmente na porta `27017` ou configurado via `.env`)
 
-### 1. Configurar o Backend
+---
 
-1.  Navegue até a pasta `backend`:
+## Instalação e Configuração
+
+Siga os passos abaixo para rodar o projeto localmente.
+
+### 1. Configuração do Backend
+
+1.  Abra o terminal e entre na pasta `backend`:
     ```bash
     cd backend
     ```
 
-2.  Instale as dependências:
+2.  Instale as dependências do projeto:
     ```bash
     npm install
     ```
 
-3.  Crie um arquivo `.env` na pasta `backend` (se não existir) com as seguintes variáveis (ajuste conforme necessário):
+3.  Configure as variáveis de ambiente. Crie um arquivo `.env` na **raiz do projeto** (fora da pasta backend) com o seguinte conteúdo:
     ```env
     PORT=5000
     MONGO_URI=mongodb://localhost:27017/hotel_management
-    JWT_SECRET=sua_chave_secreta_aqui
+    JWT_SECRET=sua_chave_secreta_super_segura
     ```
 
-4.  Inicialize o banco de dados (Cria o usuário administrador):
+4.  Inicialize o banco de dados com dados de teste e o usuário administrador:
     ```bash
     node scripts/seedMongoDB.js
     ```
+    >**Sucesso:** Você verá mensagens confirmando a conexão e a criação do usuário admin.
 
-    **Você verá:**
-    ```
-    MongoDB Conectado: localhost
-    Usuário administrador criado
-       Email: admin@hotel.com
-       Senha: admin
-    Banco de dados MongoDB inicializado com sucesso!
-    ```
-
-5.  Inicie o servidor backend:
+5.  Inicie o servidor:
     ```bash
     npm start
     ```
+    > O servidor rodará em `http://localhost:5000`.
 
-    **Você verá:**
-    ```
-    Servidor rodando na porta 5000
-    URL: http://localhost:5000
-    MongoDB Conectado: localhost
-    ```
+### 2. Configuração do Frontend
 
-### 2. Configurar o Frontend
-
-1.  Abra um **novo terminal** e navegue até a pasta `frontend` (se estiver no backend, volte um nível e entre em frontend):
+1.  Abra um **novo terminal** e entre na pasta `frontend`:
     ```bash
-    cd ../frontend
+    cd frontend
     ```
 
 2.  Instale as dependências:
@@ -66,88 +58,58 @@ Este projeto foi migrado de MySQL para MongoDB. Siga as instruções abaixo para
     npm install
     ```
 
-3.  Inicie o frontend:
+3.  Inicie a aplicação React:
     ```bash
     npm start
     ```
-
-    O navegador abrirá automaticamente em `http://localhost:3000`.
-
----
-
-## Acessos Disponíveis
-
-### Administrador Padrão
-```
-Email: admin@hotel.com
-Senha: admin
-```
-*(Nota: A senha padrão foi alterada de 'root' para 'admin' na migração)*
-
-**O que o admin pode fazer:**
-- Aprovar/reprovar hotéis cadastrados
-- Gerenciar todos os usuários
-- Tornar usuários administradores
-- Ver estatísticas do sistema
-- Deletar hotéis e usuários
-
-### Criar Conta de Usuário Normal
-1. Clique em **"Registrar"**
-2. Preencha seus dados
-3. Você será automaticamente logado e redirecionado
+    > O navegador abrirá automaticamente em `http://localhost:3000`.
 
 ---
 
-## Principais Mudanças (V3 - MongoDB)
+## Instruções de Utilização
 
--   **Banco de Dados**: Migrado de MySQL para MongoDB.
--   **ORM**: Substituído `mysql2` por `mongoose`.
--   **Estrutura de Dados**:
-    -   Tabelas convertidas para Coleções (`users`, `hotels`, `roomtypes`, `reservations`, `contactmessages`).
-    -   Relacionamentos mantidos através de referências (`ObjectId`).
-    -   Comodidades agora são um array de strings dentro do documento do Hotel, simplificando a estrutura.
+### Acesso Administrativo
 
----
+Para gerenciar o sistema, utilize a conta de administrador padrão criada pelo script de inicialização:
 
-## Fluxo de Cadastro de Hotel
+-   **Email:** `admin@hotel.com`
+-   **Senha:** `admin`
 
-### Para Usuários
+### Funcionalidades do Sistema
 
-1. Faça login
-2. Vá para **"Cadastrar Hotel"**
-3. Preencha as informações básicas
-4. **IMPORTANTE:** Crie pelo menos 1 tipo de quarto:
-   - Nome (ex: "Quarto Standard")
-   - Descrição
-   - Preço por noite
-   - Capacidade de pessoas
-   - Quantidade disponível
-5. Adicione comodidades (opcional)
-6. Clique em **"Cadastrar"**
+#### 1. Cadastro de Usuários
+-   Qualquer pessoa pode criar uma conta clicando em "Registrar".
+-   Usuários normais podem visualizar hotéis e fazer reservas.
 
-**Status:** Hotel ficará **"Aguardando Aprovação"**
+#### 2. Cadastro de Hotéis (Parceiros)
+-   Usuários logados podem cadastrar seus hotéis.
+-   **Importante:** Ao cadastrar um hotel, é obrigatório adicionar pelo menos um **Tipo de Quarto** (ex: Standard, Luxo) com preço e capacidade.
+-   Novos hotéis ficam com status **"Pendente"** até serem aprovados por um administrador.
 
-### Para Administradores
+#### 3. Aprovação de Hotéis (Admin)
+-   Acesse o sistema com a conta de administrador.
+-   Vá para o **Dashboard**.
+-   Em "Hotéis Pendentes", revise os dados e clique em **Aprovar**.
+-   Após aprovação, o hotel ficará visível para todos os usuários na página inicial.
 
-1. Faça login como admin
-2. Vá para **Dashboard Administrativo** (`/admin`)
-3. Clique em **"Hotéis Pendentes"**
-4. Revise o hotel cadastrado
-5. Clique em **"Aprovar"**
-
-**Resultado:** Hotel aparece para todos os usuários!
+#### 4. Realizando Reservas
+-   Na página inicial, clique em um hotel para ver detalhes.
+-   Selecione as datas de entrada e saída.
+-   Escolha o tipo de quarto.
+-   Confirme a reserva.
+-   Você pode visualizar suas reservas na página "Minhas Reservas".
 
 ---
 
-## Solução de Problemas Comuns
+## Tecnologias Utilizadas
 
-### "Erro ao conectar ao MongoDB"
-- Verifique se o serviço do MongoDB está rodando.
-- Verifique se a `MONGO_URI` no `.env` está correta.
+-   **Frontend:** React, CSS Modules (com transições e animações).
+-   **Backend:** Node.js, Express.
+-   **Banco de Dados:** MongoDB (Mongoose).
+-   **Autenticação:** JWT (JSON Web Tokens).
 
-### "Usuário admin não funciona"
-- Certifique-se de ter rodado `node scripts/seedMongoDB.js`.
-- A senha padrão é `admin`.
+## Solução de Problemas
 
-### "Hotel não aparece na listagem"
-- Verifique se o hotel foi aprovado pelo administrador.
+-   **Erro de Conexão (MongoNetworkError):** Verifique se o MongoDB está rodando (`mongod`).
+-   **Login Falhou:** Verifique se rodou o script `seedMongoDB.js` para criar o usuário admin.
+-   **Hotel não aparece:** Verifique se ele foi aprovado pelo administrador.
