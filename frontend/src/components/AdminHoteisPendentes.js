@@ -158,7 +158,7 @@ const AdminHoteisPendentes = () => {
                 <div className="grid grid-cols-1 gap-6">
                     {hotels.map((hotel) => (
                         <div
-                            key={hotel.id}
+                            key={hotel.id || hotel._id}
                             className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden border border-yellow-400 dark:border-yellow-600"
                         >
                             <div className="flex flex-col md:flex-row">
@@ -232,32 +232,25 @@ const AdminHoteisPendentes = () => {
                                     {/* Ações */}
                                     <div className="flex gap-2 mt-4 flex-wrap">
                                         <button
-                                            onClick={() => handleAprovar(hotel.id)}
+                                            onClick={() => handleAprovar(hotel.id || hotel._id)}
                                             className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md transition-colors font-medium flex items-center gap-2"
                                         >
                                             <CheckCircle className="w-4 h-4" />
                                             Aprovar
                                         </button>
                                         <button
-                                            onClick={() => handleReprovar(hotel.id)}
+                                            onClick={() => handleReprovar(hotel.id || hotel._id)}
                                             className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md transition-colors flex items-center gap-2"
                                         >
                                             <XCircle className="w-4 h-4" />
                                             Reprovar
                                         </button>
                                         <button
-                                            onClick={() => handleDelete(hotel.id)}
+                                            onClick={() => handleDelete(hotel.id || hotel._id)}
                                             className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md transition-colors flex items-center gap-2"
                                         >
                                             <Trash2 className="w-4 h-4" />
                                             Deletar
-                                        </button>
-                                        <button
-                                            onClick={() => navigate(`/hoteis/${hotel.id}`)}
-                                            className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-md transition-colors flex items-center gap-2"
-                                        >
-                                            <Eye className="w-4 h-4" />
-                                            Ver Detalhes
                                         </button>
                                     </div>
                                 </div>

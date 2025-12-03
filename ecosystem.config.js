@@ -18,7 +18,7 @@ module.exports = {
       name: 'hotel-frontend',
       script: 'serve',
       args: '-s build -l 3000',
-      cwd: '/home/ubuntu/React-Sistema-de-Gerenciamento-Hotel',
+      cwd: '/home/ubuntu/React-Sistema-de-Gerenciamento-Hotel/frontend',
       instances: 1,
       exec_mode: 'fork',
       env: {

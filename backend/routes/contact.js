@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../config/database');
+const ContactMessage = require('../models/ContactMessage');
 const authMiddleware = require('../middleware/auth');
 
 // Todas as rotas requerem autenticação
@@ -18,15 +18,17 @@ router.post('/', async (req, res) => {
       });
     }
 
-    const [result] = await db.query(
-      'INSERT INTO contact_messages (user_id, reservation_id, assunto, mensagem) VALUES (?, ?, ?, ?)',
-      [req.userId, reservation_id || null, assunto, mensagem]
-    );
+    const contactMessage = await ContactMessage.create({
+      user_id: req.userId,
+      reservation_id: reservation_id || null,
+      assunto,
+      mensagem
+    });
 
     res.status(201).json({
       success: true,
       message: 'Mensagem enviada com sucesso. Um administrador entrará em contato em breve.',
-      messageId: result.insertId
+      messageId: contactMessage._id
     });
   } catch (error) {
     console.error('Erro ao enviar mensagem:', error);
@@ -40,21 +42,30 @@ router.post('/', async (req, res) => {
 // Listar minhas mensagens
 router.get('/minhas-mensagens', async (req, res) => {
   try {
-    const [messages] = await db.query(`
-      SELECT 
-        cm.*,
-        r.id as reserva_id,
-        h.nome as hotel_nome
-      FROM contact_messages cm
-      LEFT JOIN reservations r ON cm.reservation_id = r.id
-      LEFT JOIN hotels h ON r.hotel_id = h.id
-      WHERE cm.user_id = ?
-      ORDER BY cm.created_at DESC
-    `, [req.userId]);
+    const messages = await ContactMessage.find({ user_id: req.userId })
+      .populate({
+        path: 'reservation_id',
+        populate: {
+          path: 'hotel_id',
+          select: 'nome'
+        }
+      })
+      .sort({ created_at: -1 });
+
+    const formattedMessages = messages.map(msg => {
+      const obj = msg.toObject();
+      if (obj.reservation_id) {
+        obj.reserva_id = obj.reservation_id._id;
+        if (obj.reservation_id.hotel_id) {
+          obj.hotel_nome = obj.reservation_id.hotel_id.nome;
+        }
+      }
+      return obj;
+    });
 
     res.json({
       success: true,
-      messages
+      messages: formattedMessages
     });
   } catch (error) {
     console.error('Erro ao listar mensagens:', error);

@@ -161,7 +161,7 @@ const AdminUsuarios = () => {
           <tbody>
             {filteredUsers.map((user) => (
               <tr
-                key={user.id}
+                key={user.id || user._id}
                 className="border-b border-purple-200 dark:border-purple-700 hover:bg-purple-50 dark:hover:bg-gray-700"
               >
                 <td className="px-4 py-3 text-purple-800 dark:text-purple-200">
@@ -193,7 +193,7 @@ const AdminUsuarios = () => {
                 <td className="px-4 py-3 text-center">
                   <div className="flex justify-center gap-2">
                     <button
-                      onClick={() => handleToggleAdmin(user.id, user.is_admin)}
+                      onClick={() => handleToggleAdmin(user.id || user._id, user.is_admin)}
                       className={`${user.is_admin
                         ? 'bg-yellow-500 hover:bg-yellow-600'
                         : 'bg-green-500 hover:bg-green-600'
@@ -203,7 +203,7 @@ const AdminUsuarios = () => {
                       {user.is_admin ? <ShieldOff className="w-4 h-4" /> : <Shield className="w-4 h-4" />}
                     </button>
                     <button
-                      onClick={() => handleDeleteUser(user.id)}
+                      onClick={() => handleDeleteUser(user.id || user._id)}
                       className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm transition-colors flex items-center gap-1"
                       title="Deletar Usuário"
                     >

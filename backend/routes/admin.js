@@ -1,18 +1,18 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
-const db = require('../config/database');
+const User = require('../models/User');
+const Hotel = require('../models/Hotel');
+const Reservation = require('../models/Reservation');
+const RoomType = require('../models/RoomType');
 const authMiddleware = require('../middleware/auth');
 
 // Middleware para verificar se é admin
 const adminMiddleware = async (req, res, next) => {
   try {
-    const [users] = await db.query(
-      'SELECT is_admin FROM users WHERE id = ?',
-      [req.userId]
-    );
+    const user = await User.findById(req.userId);
 
-    if (users.length === 0 || !users[0].is_admin) {
+    if (!user || !user.is_admin) {
       return res.status(403).json({
         success: false,
         message: 'Acesso negado. Apenas administradores podem acessar esta rota.'
@@ -40,31 +40,24 @@ router.use(adminMiddleware);
 // Listar todos os hotéis (aprovados e pendentes)
 router.get('/hotels', async (req, res) => {
   try {
-    const [hotels] = await db.query(`
-      SELECT h.*, u.nome as proprietario_nome, u.email as proprietario_email
-      FROM hotels h
-      INNER JOIN users u ON h.user_id = u.id
-      ORDER BY h.aprovado ASC, h.created_at DESC
-    `);
+    const hotels = await Hotel.find()
+      .populate('user_id', 'nome email')
+      .sort({ aprovado: 1, created_at: -1 });
 
-    // Buscar comodidades e tipos de quartos
-    for (let hotel of hotels) {
-      const [comodidades] = await db.query(
-        'SELECT comodidade FROM hotel_comodidades WHERE hotel_id = ?',
-        [hotel.id]
-      );
-      hotel.comodidades = comodidades.map(c => c.comodidade);
+    const hotelsWithDetails = await Promise.all(hotels.map(async (hotel) => {
+      const roomTypes = await RoomType.find({ hotel_id: hotel._id });
 
-      const [roomTypes] = await db.query(
-        'SELECT * FROM room_types WHERE hotel_id = ?',
-        [hotel.id]
-      );
-      hotel.tipos_quartos = roomTypes;
-    }
+      return {
+        ...hotel.toObject(),
+        proprietario_nome: hotel.user_id.nome,
+        proprietario_email: hotel.user_id.email,
+        tipos_quartos: roomTypes
+      };
+    }));
 
     res.json({
       success: true,
-      hotels
+      hotels: hotelsWithDetails
     });
   } catch (error) {
     console.error('Erro ao listar hotéis:', error);
@@ -78,32 +71,27 @@ router.get('/hotels', async (req, res) => {
 // Listar hotéis pendentes de aprovação
 router.get('/hotels/pendentes', async (req, res) => {
   try {
-    const [hotels] = await db.query(`
-      SELECT h.*, u.nome as proprietario_nome, u.email as proprietario_email
-      FROM hotels h
-      INNER JOIN users u ON h.user_id = u.id
-      WHERE h.aprovado = FALSE AND h.rejeitado = FALSE
-      ORDER BY h.created_at DESC
-    `);
+    // Assumindo que "rejeitado" não existe no schema atual, apenas aprovado=false
+    // Se precisarmos de estado rejeitado, deveríamos adicionar ao schema ou usar um enum status
+    // Por enquanto, vamos considerar pendente como aprovado=false
+    const hotels = await Hotel.find({ aprovado: false })
+      .populate('user_id', 'nome email')
+      .sort({ created_at: -1 });
 
-    // Buscar comodidades e tipos de quartos
-    for (let hotel of hotels) {
-      const [comodidades] = await db.query(
-        'SELECT comodidade FROM hotel_comodidades WHERE hotel_id = ?',
-        [hotel.id]
-      );
-      hotel.comodidades = comodidades.map(c => c.comodidade);
+    const hotelsWithDetails = await Promise.all(hotels.map(async (hotel) => {
+      const roomTypes = await RoomType.find({ hotel_id: hotel._id });
 
-      const [roomTypes] = await db.query(
-        'SELECT * FROM room_types WHERE hotel_id = ?',
-        [hotel.id]
-      );
-      hotel.tipos_quartos = roomTypes;
-    }
+      return {
+        ...hotel.toObject(),
+        proprietario_nome: hotel.user_id.nome,
+        proprietario_email: hotel.user_id.email,
+        tipos_quartos: roomTypes
+      };
+    }));
 
     res.json({
       success: true,
-      hotels
+      hotels: hotelsWithDetails
     });
   } catch (error) {
     console.error('Erro ao listar hotéis pendentes:', error);
@@ -117,22 +105,18 @@ router.get('/hotels/pendentes', async (req, res) => {
 // Aprovar hotel
 router.put('/hotels/:id/aprovar', async (req, res) => {
   try {
-    const [hotels] = await db.query(
-      'SELECT id FROM hotels WHERE id = ?',
-      [req.params.id]
+    const hotel = await Hotel.findByIdAndUpdate(
+      req.params.id,
+      { aprovado: true },
+      { new: true }
     );
 
-    if (hotels.length === 0) {
+    if (!hotel) {
       return res.status(404).json({
         success: false,
         message: 'Hotel não encontrado'
       });
     }
-
-    await db.query(
-      'UPDATE hotels SET aprovado = TRUE WHERE id = ?',
-      [req.params.id]
-    );
 
     res.json({
       success: true,
@@ -150,22 +134,20 @@ router.put('/hotels/:id/aprovar', async (req, res) => {
 // Reprovar/desaprovar hotel
 router.put('/hotels/:id/reprovar', async (req, res) => {
   try {
-    const [hotels] = await db.query(
-      'SELECT id FROM hotels WHERE id = ?',
-      [req.params.id]
+    // Como não temos campo rejeitado no schema, vamos apenas setar aprovado=false
+    // Se quiser implementar rejeição explícita, precisaria atualizar o schema
+    const hotel = await Hotel.findByIdAndUpdate(
+      req.params.id,
+      { aprovado: false },
+      { new: true }
     );
 
-    if (hotels.length === 0) {
+    if (!hotel) {
       return res.status(404).json({
         success: false,
         message: 'Hotel não encontrado'
       });
     }
-
-    await db.query(
-      'UPDATE hotels SET aprovado = FALSE, rejeitado = TRUE WHERE id = ?',
-      [req.params.id]
-    );
 
     res.json({
       success: true,
@@ -180,6 +162,35 @@ router.put('/hotels/:id/reprovar', async (req, res) => {
   }
 });
 
+// Deletar hotel
+router.delete('/hotels/:id', async (req, res) => {
+  try {
+    const hotel = await Hotel.findByIdAndDelete(req.params.id);
+
+    if (!hotel) {
+      return res.status(404).json({
+        success: false,
+        message: 'Hotel não encontrado'
+      });
+    }
+
+    // Deletar tipos de quartos e reservas associados
+    await RoomType.deleteMany({ hotel_id: req.params.id });
+    await Reservation.deleteMany({ hotel_id: req.params.id });
+
+    res.json({
+      success: true,
+      message: 'Hotel deletado com sucesso'
+    });
+  } catch (error) {
+    console.error('Erro ao deletar hotel:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erro ao deletar hotel'
+    });
+  }
+});
+
 // =====================================================
 // GERENCIAMENTO DE USUÁRIOS
 // =====================================================
@@ -187,37 +198,22 @@ router.put('/hotels/:id/reprovar', async (req, res) => {
 // Listar todos os usuários
 router.get('/users', async (req, res) => {
   try {
-    const [users] = await db.query(`
-      SELECT 
-        id, 
-        email, 
-        nome, 
-        telefone, 
-        endereco, 
-        is_admin, 
-        created_at 
-      FROM users 
-      ORDER BY created_at DESC
-    `);
+    const users = await User.find().sort({ created_at: -1 });
 
-    // Contar hotéis e reservas de cada usuário
-    for (let user of users) {
-      const [hotelCount] = await db.query(
-        'SELECT COUNT(*) as total FROM hotels WHERE user_id = ?',
-        [user.id]
-      );
-      user.total_hoteis = hotelCount[0].total;
+    const usersWithStats = await Promise.all(users.map(async (user) => {
+      const totalHoteis = await Hotel.countDocuments({ user_id: user._id });
+      const totalReservas = await Reservation.countDocuments({ user_id: user._id });
 
-      const [reservationCount] = await db.query(
-        'SELECT COUNT(*) as total FROM reservations WHERE user_id = ?',
-        [user.id]
-      );
-      user.total_reservas = reservationCount[0].total;
-    }
+      return {
+        ...user.toObject(),
+        total_hoteis: totalHoteis,
+        total_reservas: totalReservas
+      };
+    }));
 
     res.json({
       success: true,
-      users
+      users: usersWithStats
     });
   } catch (error) {
     console.error('Erro ao listar usuários:', error);
@@ -231,12 +227,9 @@ router.get('/users', async (req, res) => {
 // Buscar usuário por ID
 router.get('/users/:id', async (req, res) => {
   try {
-    const [users] = await db.query(
-      'SELECT id, email, nome, telefone, endereco, is_admin, created_at FROM users WHERE id = ?',
-      [req.params.id]
-    );
+    const user = await User.findById(req.params.id);
 
-    if (users.length === 0) {
+    if (!user) {
       return res.status(404).json({
         success: false,
         message: 'Usuário não encontrado'
@@ -245,7 +238,7 @@ router.get('/users/:id', async (req, res) => {
 
     res.json({
       success: true,
-      user: users[0]
+      user
     });
   } catch (error) {
     console.error('Erro ao buscar usuário:', error);
@@ -261,32 +254,26 @@ router.put('/users/:id', async (req, res) => {
   try {
     const { nome, telefone, endereco, email, is_admin, password } = req.body;
 
-    const [users] = await db.query(
-      'SELECT id FROM users WHERE id = ?',
-      [req.params.id]
-    );
+    const user = await User.findById(req.params.id);
 
-    if (users.length === 0) {
+    if (!user) {
       return res.status(404).json({
         success: false,
         message: 'Usuário não encontrado'
       });
     }
 
-    let query = 'UPDATE users SET nome = ?, telefone = ?, endereco = ?, email = ?, is_admin = ?';
-    let params = [nome, telefone, endereco, email, is_admin];
+    user.nome = nome || user.nome;
+    user.telefone = telefone || user.telefone;
+    user.endereco = endereco || user.endereco;
+    user.email = email || user.email;
+    if (is_admin !== undefined) user.is_admin = is_admin;
 
-    // Se houver nova senha
     if (password) {
-      const hashedPassword = await bcrypt.hash(password, 10);
-      query += ', password = ?';
-      params.push(hashedPassword);
+      user.password = await bcrypt.hash(password, 10);
     }
 
-    query += ' WHERE id = ?';
-    params.push(req.params.id);
-
-    await db.query(query, params);
+    await user.save();
 
     res.json({
       success: true,
@@ -305,19 +292,16 @@ router.put('/users/:id', async (req, res) => {
 router.delete('/users/:id', async (req, res) => {
   try {
     // Não permitir deletar a si mesmo
-    if (parseInt(req.params.id) === req.userId) {
+    if (req.params.id === req.userId) {
       return res.status(400).json({
         success: false,
         message: 'Você não pode deletar sua própria conta'
       });
     }
 
-    const [result] = await db.query(
-      'DELETE FROM users WHERE id = ?',
-      [req.params.id]
-    );
+    const user = await User.findByIdAndDelete(req.params.id);
 
-    if (result.affectedRows === 0) {
+    if (!user) {
       return res.status(404).json({
         success: false,
         message: 'Usuário não encontrado'
@@ -340,22 +324,18 @@ router.delete('/users/:id', async (req, res) => {
 // Tornar usuário administrador
 router.put('/users/:id/tornar-admin', async (req, res) => {
   try {
-    const [users] = await db.query(
-      'SELECT id FROM users WHERE id = ?',
-      [req.params.id]
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { is_admin: true },
+      { new: true }
     );
 
-    if (users.length === 0) {
+    if (!user) {
       return res.status(404).json({
         success: false,
         message: 'Usuário não encontrado'
       });
     }
-
-    await db.query(
-      'UPDATE users SET is_admin = TRUE WHERE id = ?',
-      [req.params.id]
-    );
 
     res.json({
       success: true,
@@ -374,29 +354,25 @@ router.put('/users/:id/tornar-admin', async (req, res) => {
 router.put('/users/:id/remover-admin', async (req, res) => {
   try {
     // Não permitir remover a si mesmo
-    if (parseInt(req.params.id) === req.userId) {
+    if (req.params.id === req.userId) {
       return res.status(400).json({
         success: false,
         message: 'Você não pode remover seus próprios privilégios de administrador'
       });
     }
 
-    const [users] = await db.query(
-      'SELECT id FROM users WHERE id = ?',
-      [req.params.id]
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { is_admin: false },
+      { new: true }
     );
 
-    if (users.length === 0) {
+    if (!user) {
       return res.status(404).json({
         success: false,
         message: 'Usuário não encontrado'
       });
     }
-
-    await db.query(
-      'UPDATE users SET is_admin = FALSE WHERE id = ?',
-      [req.params.id]
-    );
 
     res.json({
       success: true,
@@ -418,33 +394,22 @@ router.put('/users/:id/remover-admin', async (req, res) => {
 // Dashboard com estatísticas
 router.get('/dashboard/stats', async (req, res) => {
   try {
-    // Total de usuários
-    const [userCount] = await db.query('SELECT COUNT(*) as total FROM users');
-
-    // Total de hotéis
-    const [hotelCount] = await db.query('SELECT COUNT(*) as total FROM hotels');
-
-    // Hotéis aprovados
-    const [approvedHotelCount] = await db.query('SELECT COUNT(*) as total FROM hotels WHERE aprovado = TRUE');
-
-    // Hotéis pendentes
-    const [pendingHotelCount] = await db.query('SELECT COUNT(*) as total FROM hotels WHERE aprovado = FALSE');
-
-    // Total de reservas
-    const [reservationCount] = await db.query('SELECT COUNT(*) as total FROM reservations');
-
-    // Reservas ativas
-    const [activeReservationCount] = await db.query('SELECT COUNT(*) as total FROM reservations WHERE status = "ativa"');
+    const total_usuarios = await User.countDocuments();
+    const total_hoteis = await Hotel.countDocuments();
+    const hoteis_aprovados = await Hotel.countDocuments({ aprovado: true });
+    const hoteis_pendentes = await Hotel.countDocuments({ aprovado: false });
+    const total_reservas = await Reservation.countDocuments();
+    const reservas_ativas = await Reservation.countDocuments({ status: 'ativa' });
 
     res.json({
       success: true,
       stats: {
-        total_usuarios: userCount[0].total,
-        total_hoteis: hotelCount[0].total,
-        hoteis_aprovados: approvedHotelCount[0].total,
-        hoteis_pendentes: pendingHotelCount[0].total,
-        total_reservas: reservationCount[0].total,
-        reservas_ativas: activeReservationCount[0].total
+        total_usuarios,
+        total_hoteis,
+        hoteis_aprovados,
+        hoteis_pendentes,
+        total_reservas,
+        reservas_ativas
       }
     });
   } catch (error) {

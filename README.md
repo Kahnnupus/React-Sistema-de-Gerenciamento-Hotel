@@ -1,45 +1,77 @@
-# Guia de Início Rápido - Versão 2.0
+# Sistema de Gerenciamento de Hotel - Versão 3.0 (MongoDB)
 
-### 1 Inicializar o Banco de Dados
+Este projeto foi migrado de MySQL para MongoDB. Siga as instruções abaixo para rodar o projeto.
 
-```bash
-cd backend
-npm install
-npm run init-db
-```
+## Pré-requisitos
 
-**Você verá:**
-```
-Conectado ao MySQL
-Script SQL executado com sucesso
-Usuário administrador criado
-Email: admin@hotel.com
-Senha: root
-```
+-   [Node.js](https://nodejs.org/) (v14 ou superior)
+-   [MongoDB](https://www.mongodb.com/try/download/community) (rodando localmente na porta 27017 ou configure a URI no `.env`)
 
-### 2 Iniciar o Backend
+## Configuração e Instalação
 
-```bash
-npm start
-```
+### 1. Configurar o Backend
 
-**Você verá:**
-```
-Servidor rodando na porta 5000
-URL: http://localhost:5000
-```
+1.  Navegue até a pasta `backend`:
+    ```bash
+    cd backend
+    ```
 
-### 3 Iniciar o Frontend
+2.  Instale as dependências:
+    ```bash
+    npm install
+    ```
 
-Em **outro terminal**:
+3.  Crie um arquivo `.env` na pasta `backend` (se não existir) com as seguintes variáveis (ajuste conforme necessário):
+    ```env
+    PORT=5000
+    MONGO_URI=mongodb://localhost:27017/hotel_management
+    JWT_SECRET=sua_chave_secreta_aqui
+    ```
 
-```bash
-cd ..
-npm install
-npm start
-```
+4.  Inicialize o banco de dados (Cria o usuário administrador):
+    ```bash
+    node scripts/seedMongoDB.js
+    ```
 
-O navegador abrirá automaticamente em `http://localhost:3000`
+    **Você verá:**
+    ```
+    MongoDB Conectado: localhost
+    Usuário administrador criado
+       Email: admin@hotel.com
+       Senha: admin
+    Banco de dados MongoDB inicializado com sucesso!
+    ```
+
+5.  Inicie o servidor backend:
+    ```bash
+    npm start
+    ```
+
+    **Você verá:**
+    ```
+    Servidor rodando na porta 5000
+    URL: http://localhost:5000
+    MongoDB Conectado: localhost
+    ```
+
+### 2. Configurar o Frontend
+
+1.  Abra um **novo terminal** e navegue até a pasta `frontend` (se estiver no backend, volte um nível e entre em frontend):
+    ```bash
+    cd ../frontend
+    ```
+
+2.  Instale as dependências:
+    ```bash
+    npm install
+    ```
+
+3.  Inicie o frontend:
+    ```bash
+    npm start
+    ```
+
+    O navegador abrirá automaticamente em `http://localhost:3000`.
 
 ---
 
@@ -48,8 +80,9 @@ O navegador abrirá automaticamente em `http://localhost:3000`
 ### Administrador Padrão
 ```
 Email: admin@hotel.com
-Senha: root
+Senha: admin
 ```
+*(Nota: A senha padrão foi alterada de 'root' para 'admin' na migração)*
 
 **O que o admin pode fazer:**
 - Aprovar/reprovar hotéis cadastrados
@@ -63,12 +96,16 @@ Senha: root
 2. Preencha seus dados
 3. Você será automaticamente logado e redirecionado
 
-**O que usuários normais podem fazer:**
-- Cadastrar hotéis (aguardam aprovação)
-- Fazer reservas em hotéis aprovados
-- Gerenciar suas reservas
-- Contatar administrador
-- Editar/deletar seus hotéis
+---
+
+## Principais Mudanças (V3 - MongoDB)
+
+-   **Banco de Dados**: Migrado de MySQL para MongoDB.
+-   **ORM**: Substituído `mysql2` por `mongoose`.
+-   **Estrutura de Dados**:
+    -   Tabelas convertidas para Coleções (`users`, `hotels`, `roomtypes`, `reservations`, `contactmessages`).
+    -   Relacionamentos mantidos através de referências (`ObjectId`).
+    -   Comodidades agora são um array de strings dentro do documento do Hotel, simplificando a estrutura.
 
 ---
 
@@ -102,161 +139,15 @@ Senha: root
 
 ---
 
-## Principais Mudanças da V2
+## Solução de Problemas Comuns
 
-### O que foi adicionado
+### "Erro ao conectar ao MongoDB"
+- Verifique se o serviço do MongoDB está rodando.
+- Verifique se a `MONGO_URI` no `.env` está correta.
 
-1. **Sistema de Tipos de Quartos**
-   - Cada hotel tem seus próprios tipos
-   - Obrigatório criar pelo menos 1 tipo
-
-2. **Aprovação de Hotéis**
-   - Hotéis não aparecem até serem aprovados
-   - Apenas admin pode aprovar
-
-3. **Dashboard Administrativo**
-   - Gerenciar usuários
-   - Aprovar hotéis
-   - Ver estatísticas
-
-4. **Área do Usuário**
-   - Minhas Reservas
-   - Meus Hotéis Cadastrados
-   - Contatar Administrador
-
-5. **Feedback de Erros**
-   - Login mostra erros específicos
-   - Registro mostra erros específicos
-
-### O que foi removido
-
-- Sistema de Produtos
-- Carrinho de Compras
-
----
-
-## 🔍 Testando o Sistema
-
-### Teste 1: Cadastrar Hotel como Usuário
-
-1. Registre-se como usuário normal
-2. Cadastre um hotel com 2 tipos de quartos
-3. Vá para "Meus Hotéis" → Verá status "Aguardando Aprovação"
-4. Tente ver o hotel na listagem pública → **Não aparece**
-
-### Teste 2: Aprovar Hotel como Admin
-
-1. Faça logout
-2. Faça login como admin (admin@hotel.com / root)
-3. Vá para `/admin/hoteis-pendentes`
-4. Aprove o hotel cadastrado
-5. Faça logout e login como usuário normal
-6. Veja a listagem pública → **Hotel aparece!**
-
-### Teste 3: Fazer Reserva
-
-1. Como usuário normal, vá para "Hotéis"
-2. Escolha um hotel aprovado
-3. Clique em "Reservar"
-4. Preencha:
-   - Nome completo
-   - Email
-   - Telefone
-   - Datas
-   - Tipo de quarto
-5. Confirme a reserva
-6. Vá para "Minhas Reservas" → Verá a reserva
-
-### Teste 4: Contatar Administrador
-
-1. Em "Minhas Reservas"
-2. Clique em "Contatar Administrador"
-3. Escreva uma mensagem
-4. Envie
-5. Mensagem salva no banco de dados
+### "Usuário admin não funciona"
+- Certifique-se de ter rodado `node scripts/seedMongoDB.js`.
+- A senha padrão é `admin`.
 
 ### "Hotel não aparece na listagem"
-
-**Motivo:** Hotel não foi aprovado pelo administrador
-
-**Solução:**
-1. Faça login como admin
-2. Aprove o hotel em `/admin/hoteis-pendentes`
-
-### "Erro: É necessário cadastrar pelo menos um tipo de quarto"
-
-**Motivo:** Você tentou cadastrar hotel sem tipos de quartos
-
-**Solução:**
-1. No formulário de cadastro
-2. Preencha a seção "Tipos de Quartos"
-3. Clique em "Adicionar Tipo de Quarto"
-4. Preencha os dados do tipo
-5. Depois cadastre o hotel
-
-### "Erro 403: Acesso negado"
-
-**Motivo:** Você tentou acessar área administrativa sem ser admin
-
-**Solução:**
-- Faça login como admin (admin@hotel.com / root)
-- Ou peça a um admin para tornar você administrador
-
----
-
-## Estrutura de Navegação
-
-### Para Usuários Normais
-```
-/                          → Home
-/login                     → Login
-/register                  → Registro
-/hoteis                    → Listar hotéis aprovados
-/hoteis/:id                → Detalhes do hotel
-/cadastrar-hotel           → Cadastrar novo hotel
-/meus-hoteis               → Meus hotéis cadastrados
-/editar-hotel/:id          → Editar meu hotel
-/minhas-reservas           → Minhas reservas
-/reservar/:id              → Fazer reserva
-```
-
-### Para Administradores
-```
-/admin                     → Dashboard administrativo
-/admin/usuarios            → Gerenciar usuários
-/admin/hoteis              → Gerenciar hotéis
-/admin/hoteis-pendentes    → Hotéis aguardando aprovação
-```
-
----
-
-## Casos de Uso Principais
-
-### Caso 1: Proprietário de Hotel
-
-1. Registrar-se no sistema
-2. Cadastrar hotel com tipos de quartos
-3. Aguardar aprovação do admin
-4. Após aprovação, gerenciar reservas
-5. Editar informações do hotel quando necessário
-
-### Caso 2: Hóspede
-
-1. Registrar-se no sistema
-2. Buscar hotéis disponíveis
-3. Ver tipos de quartos e preços
-4. Fazer reserva com dados pessoais
-5. Gerenciar reservas
-6. Contatar admin se precisar alterar
-
-### Caso 3: Administrador
-
-1. Login com credenciais admin
-2. Revisar hotéis pendentes
-3. Aprovar hotéis de qualidade
-4. Reprovar hotéis inadequados
-5. Gerenciar usuários problemáticos
-6. Promover usuários confiáveis a admin
-
----
-
+- Verifique se o hotel foi aprovado pelo administrador.
