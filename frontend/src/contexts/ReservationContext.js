@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import API_BASE_URL from "../config/api";
 import { useAuth } from "./AuthContext";
 import { useHotels } from "./HotelContext";
+import { useFeedback } from "./FeedbackContext";
 
 const ReservationContext = createContext();
 
@@ -18,6 +19,7 @@ export const ReservationProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const { token, user } = useAuth();
   const { refreshHotels } = useHotels();
+  const { showError } = useFeedback();
 
   const fetchReservations = useCallback(async () => {
     try {
@@ -63,7 +65,7 @@ export const ReservationProvider = ({ children }) => {
       const hotelData = await hotelResponse.json();
 
       if (!hotelData.success) {
-        alert('Erro ao buscar informações do hotel');
+        showError('Erro', 'Erro ao buscar informações do hotel');
         return false;
       }
 
@@ -71,7 +73,7 @@ export const ReservationProvider = ({ children }) => {
       const roomType = hotel.tipos_quartos?.find(rt => rt.nome === reservation.roomType);
 
       if (!roomType) {
-        alert('Tipo de quarto não encontrado');
+        showError('Erro', 'Tipo de quarto não encontrado');
         return false;
       }
 
@@ -106,13 +108,14 @@ export const ReservationProvider = ({ children }) => {
         await refreshHotels(); // Atualizar disponibilidade de quartos
         return true;
       } else {
-        alert(data.message || 'Erro ao criar reserva');
+        showError('Erro', data.message || 'Erro ao criar reserva');
       }
 
       return false;
     } catch (error) {
       console.error('Erro ao adicionar reserva:', error);
-      alert('Erro ao conectar com o servidor');
+      showError('Erro', 'Erro ao conectar com o servidor');
+
       return false;
     }
   };

@@ -108,7 +108,7 @@ const MeusHoteis = () => {
             Você ainda não cadastrou nenhum hotel.
           </p>
           <button
-            onClick={() => navigate("/cadastrar-hotel")}
+            onClick={() => navigate("/add-hotel")}
             className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-6 rounded-md transition-colors"
           >
             Cadastrar Primeiro Hotel

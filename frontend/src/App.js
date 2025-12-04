@@ -249,7 +249,6 @@ function AppContent() {
             <Route path="/admin/hoteis" element={<AdminHoteis />} />
             <Route path="/admin/hoteis-pendentes" element={<AdminHoteisPendentes />} />
             <Route path="/dashboard" element={<Dashboard />}>
-              <Route path="admin" element={<AdminDashboard />} />
               <Route path="perfil" element={<Perfil />} />
               <Route path="configuracoes" element={<Configuracoes />} />
             </Route>
@@ -271,13 +270,13 @@ function App() {
   return (
     <AuthProvider>
       <ThemeProvider>
-        <HotelProvider>
-          <ReservationProvider>
-            <FeedbackProvider>
+        <FeedbackProvider>
+          <HotelProvider>
+            <ReservationProvider>
               <AppContent />
-            </FeedbackProvider>
-          </ReservationProvider>
-        </HotelProvider>
+            </ReservationProvider>
+          </HotelProvider>
+        </FeedbackProvider>
       </ThemeProvider>
     </AuthProvider>
   );

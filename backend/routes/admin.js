@@ -46,9 +46,15 @@ router.get('/hotels', async (req, res) => {
 
     const hotelsWithDetails = await Promise.all(hotels.map(async (hotel) => {
       const roomTypes = await RoomType.find({ hotel_id: hotel._id });
+      const hotelObj = hotel.toObject();
+
+      // Normalizar status se não existir
+      if (!hotelObj.status) {
+        hotelObj.status = hotel.aprovado ? 'aprovado' : 'pendente';
+      }
 
       return {
-        ...hotel.toObject(),
+        ...hotelObj,
         proprietario_nome: hotel.user_id.nome,
         proprietario_email: hotel.user_id.email,
         tipos_quartos: roomTypes
@@ -68,21 +74,28 @@ router.get('/hotels', async (req, res) => {
   }
 });
 
-// Listar hotéis pendentes de aprovação
+// Listar hotéis pendentes e rejeitados
 router.get('/hotels/pendentes', async (req, res) => {
   try {
-    // Assumindo que "rejeitado" não existe no schema atual, apenas aprovado=false
-    // Se precisarmos de estado rejeitado, deveríamos adicionar ao schema ou usar um enum status
-    // Por enquanto, vamos considerar pendente como aprovado=false
-    const hotels = await Hotel.find({ aprovado: false })
+    // Busca hotéis que não estão aprovados e não foram rejeitados
+    const hotels = await Hotel.find({
+      aprovado: false,
+      status: { $ne: 'rejeitado' }
+    })
       .populate('user_id', 'nome email')
       .sort({ created_at: -1 });
 
     const hotelsWithDetails = await Promise.all(hotels.map(async (hotel) => {
       const roomTypes = await RoomType.find({ hotel_id: hotel._id });
+      const hotelObj = hotel.toObject();
+
+      // Normalizar status se não existir
+      if (!hotelObj.status) {
+        hotelObj.status = hotel.aprovado ? 'aprovado' : 'pendente';
+      }
 
       return {
-        ...hotel.toObject(),
+        ...hotelObj,
         proprietario_nome: hotel.user_id.nome,
         proprietario_email: hotel.user_id.email,
         tipos_quartos: roomTypes
@@ -107,7 +120,10 @@ router.put('/hotels/:id/aprovar', async (req, res) => {
   try {
     const hotel = await Hotel.findByIdAndUpdate(
       req.params.id,
-      { aprovado: true },
+      {
+        status: 'aprovado',
+        aprovado: true
+      },
       { new: true }
     );
 
@@ -134,11 +150,12 @@ router.put('/hotels/:id/aprovar', async (req, res) => {
 // Reprovar/desaprovar hotel
 router.put('/hotels/:id/reprovar', async (req, res) => {
   try {
-    // Como não temos campo rejeitado no schema, vamos apenas setar aprovado=false
-    // Se quiser implementar rejeição explícita, precisaria atualizar o schema
     const hotel = await Hotel.findByIdAndUpdate(
       req.params.id,
-      { aprovado: false },
+      {
+        status: 'rejeitado',
+        aprovado: false
+      },
       { new: true }
     );
 
@@ -148,6 +165,15 @@ router.put('/hotels/:id/reprovar', async (req, res) => {
         message: 'Hotel não encontrado'
       });
     }
+
+    // Cancelar reservas associadas e salvar nome do hotel
+    await Reservation.updateMany(
+      { hotel_id: hotel._id },
+      {
+        status: 'cancelada_hotel_rejeitado',
+        hotel_nome_backup: hotel.nome
+      }
+    );
 
     res.json({
       success: true,
@@ -174,9 +200,17 @@ router.delete('/hotels/:id', async (req, res) => {
       });
     }
 
-    // Deletar tipos de quartos e reservas associados
+    // Deletar tipos de quartos associados
     await RoomType.deleteMany({ hotel_id: req.params.id });
-    await Reservation.deleteMany({ hotel_id: req.params.id });
+
+    // Cancelar reservas associadas e salvar nome do hotel para notificação
+    await Reservation.updateMany(
+      { hotel_id: req.params.id },
+      {
+        status: 'cancelada_hotel_removido',
+        hotel_nome_backup: hotel.nome
+      }
+    );
 
     res.json({
       success: true,
@@ -397,7 +431,10 @@ router.get('/dashboard/stats', async (req, res) => {
     const total_usuarios = await User.countDocuments();
     const total_hoteis = await Hotel.countDocuments();
     const hoteis_aprovados = await Hotel.countDocuments({ aprovado: true });
-    const hoteis_pendentes = await Hotel.countDocuments({ aprovado: false });
+    const hoteis_pendentes = await Hotel.countDocuments({
+      aprovado: false,
+      status: { $ne: 'rejeitado' }
+    });
     const total_reservas = await Reservation.countDocuments();
     const reservas_ativas = await Reservation.countDocuments({ status: 'ativa' });
 

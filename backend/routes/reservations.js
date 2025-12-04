@@ -15,11 +15,11 @@ router.get('/', authMiddleware, async (req, res) => {
 
     const formattedReservations = reservations.map(r => ({
       ...r.toObject(),
-      hotel_nome: r.hotel_id.nome,
-      hotel_localizacao: r.hotel_id.localizacao,
-      hotel_imagem: r.hotel_id.imagem,
-      tipo_quarto_nome: r.room_type_id.nome,
-      tipo_quarto_descricao: r.room_type_id.descricao
+      hotel_nome: r.hotel_id?.nome || 'Hotel Removido',
+      hotel_localizacao: r.hotel_id?.localizacao || '',
+      hotel_imagem: r.hotel_id?.imagem || '',
+      tipo_quarto_nome: r.room_type_id?.nome || 'Quarto Removido',
+      tipo_quarto_descricao: r.room_type_id?.descricao || ''
     }));
 
     res.json({
@@ -53,13 +53,13 @@ router.get('/:id', authMiddleware, async (req, res) => {
       success: true,
       reservation: {
         ...reservation.toObject(),
-        hotel_nome: reservation.hotel_id.nome,
-        hotel_localizacao: reservation.hotel_id.localizacao,
-        hotel_imagem: reservation.hotel_id.imagem,
-        tipo_quarto_nome: reservation.room_type_id.nome,
-        tipo_quarto_descricao: reservation.room_type_id.descricao,
-        preco_por_noite: reservation.room_type_id.preco_por_noite,
-        capacidade_pessoas: reservation.room_type_id.capacidade_pessoas
+        hotel_nome: reservation.hotel_id?.nome || 'Hotel Removido',
+        hotel_localizacao: reservation.hotel_id?.localizacao || '',
+        hotel_imagem: reservation.hotel_id?.imagem || '',
+        tipo_quarto_nome: reservation.room_type_id?.nome || 'Quarto Removido',
+        tipo_quarto_descricao: reservation.room_type_id?.descricao || '',
+        preco_por_noite: reservation.room_type_id?.preco_por_noite || 0,
+        capacidade_pessoas: reservation.room_type_id?.capacidade_pessoas || 0
       }
     });
   } catch (error) {
@@ -89,10 +89,10 @@ router.post('/', authMiddleware, async (req, res) => {
     } = req.body;
 
     // Validar campos obrigatórios
-    if (!hotel_id || !room_type_id || !check_in || !check_out || !nome_cliente || !email_cliente || !telefone_cliente) {
+    if (!hotel_id || !room_type_id || !check_in || !check_out || !nome_cliente || !email_cliente) {
       return res.status(400).json({
         success: false,
-        message: 'Hotel, tipo de quarto, datas, nome, email e telefone são obrigatórios'
+        message: 'Hotel, tipo de quarto, datas, nome e email são obrigatórios'
       });
     }
 
@@ -181,6 +181,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     }
 
     // Atualizar reserva
+    // Atualizar campos
     reservation.check_in = check_in || reservation.check_in;
     reservation.check_out = check_out || reservation.check_out;
     reservation.numero_quartos = numero_quartos || reservation.numero_quartos;
@@ -190,6 +191,18 @@ router.put('/:id', authMiddleware, async (req, res) => {
     reservation.nome_cliente = nome_cliente || reservation.nome_cliente;
     reservation.email_cliente = email_cliente || reservation.email_cliente;
     reservation.telefone_cliente = telefone_cliente || reservation.telefone_cliente;
+
+    // Recalcular valor total se datas ou quartos mudaram
+    if (check_in || check_out || numero_quartos) {
+      const roomType = await RoomType.findById(reservation.room_type_id);
+      if (roomType) {
+        const start = new Date(reservation.check_in);
+        const end = new Date(reservation.check_out);
+        const diffTime = Math.abs(end - start);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1; // Mínimo 1 dia
+        reservation.valor_total = diffDays * roomType.preco_por_noite * reservation.numero_quartos;
+      }
+    }
 
     await reservation.save();
 

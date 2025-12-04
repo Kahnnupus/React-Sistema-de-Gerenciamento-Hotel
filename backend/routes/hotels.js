@@ -5,11 +5,17 @@ const RoomType = require('../models/RoomType');
 const Reservation = require('../models/Reservation');
 const User = require('../models/User');
 const authMiddleware = require('../middleware/auth');
+const upload = require('../middleware/upload');
 
 // Listar hotéis aprovados (público)
 router.get('/', async (req, res) => {
   try {
-    const hotels = await Hotel.find({ aprovado: true })
+    const hotels = await Hotel.find({
+      $or: [
+        { status: 'aprovado' },
+        { aprovado: true }
+      ]
+    })
       .populate('user_id', 'nome email')
       .sort({ created_at: -1 });
 
@@ -144,9 +150,46 @@ router.get('/:id', async (req, res) => {
 });
 
 // Criar novo hotel (requer autenticação)
-router.post('/', authMiddleware, async (req, res) => {
+router.post('/', authMiddleware, upload.single('imagem'), async (req, res) => {
   try {
-    const { nome, localizacao, descricao, imagem, comodidades, tipos_quartos } = req.body;
+    let { nome, localizacao, descricao, imagem, comodidades, tipos_quartos } = req.body;
+
+    // Se houver arquivo, usar o caminho do arquivo
+    if (req.file) {
+      // Construir URL completa ou caminho relativo acessível
+      // Aqui vamos salvar o caminho relativo para ser servido estaticamente
+      const protocol = req.protocol;
+      const host = req.get('host');
+      imagem = `${protocol}://${host}/uploads/${req.file.filename}`;
+    }
+
+    // Se tipos_quartos vier como string (FormData), fazer parse
+    if (typeof tipos_quartos === 'string') {
+      try {
+        tipos_quartos = JSON.parse(tipos_quartos);
+      } catch (e) {
+        console.error('Erro ao fazer parse de tipos_quartos:', e);
+        return res.status(400).json({
+          success: false,
+          message: 'Formato inválido para tipos de quartos'
+        });
+      }
+    }
+
+    // Se comodidades vier como string (FormData), fazer parse ou split
+    if (typeof comodidades === 'string') {
+      // Se for JSON array string
+      if (comodidades.startsWith('[')) {
+        try {
+          comodidades = JSON.parse(comodidades);
+        } catch (e) {
+          // Se falhar, tentar split por vírgula se não for JSON
+          comodidades = comodidades.split(',').map(c => c.trim()).filter(Boolean);
+        }
+      } else {
+        comodidades = comodidades.split(',').map(c => c.trim()).filter(Boolean);
+      }
+    }
 
     // Validar campos obrigatórios
     if (!nome) {
@@ -171,6 +214,7 @@ router.post('/', authMiddleware, async (req, res) => {
       localizacao,
       descricao,
       imagem,
+      status: 'pendente',
       aprovado: false,
       comodidades: comodidades || []
     });
@@ -178,9 +222,6 @@ router.post('/', authMiddleware, async (req, res) => {
     // Criar tipos de quartos
     for (let tipo of tipos_quartos) {
       if (!tipo.nome || !tipo.preco_por_noite) {
-        // Se falhar, idealmente deveríamos desfazer a criação do hotel, mas MongoDB não tem transações multi-documento simples sem Replica Set
-        // Para simplificar, vamos assumir que os dados vêm validados ou aceitar o risco de hotel sem quartos (que pode ser editado depois)
-        // Uma opção melhor seria validar tudo antes de criar qualquer coisa
         continue;
       }
 
@@ -298,8 +339,17 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     }
 
     // Deletar hotel (e em cascata os quartos e reservas se configurado, mas aqui faremos manual ou deixaremos orfãos por enquanto, ideal é usar middleware pre-remove no Mongoose)
-    // Vamos deletar os quartos associados
+    // Deletar os quartos associados
     await RoomType.deleteMany({ hotel_id: hotel._id });
+
+    // Cancelar reservas associadas e salvar nome do hotel para notificação
+    await Reservation.updateMany(
+      { hotel_id: hotel._id },
+      {
+        status: 'cancelada_hotel_removido',
+        hotel_nome_backup: hotel.nome
+      }
+    );
 
     // Deletar o hotel
     await Hotel.findByIdAndDelete(req.params.id);

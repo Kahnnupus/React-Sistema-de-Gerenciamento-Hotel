@@ -39,6 +39,35 @@ const MinhasReservas = () => {
 
       if (data.success) {
         setReservations(data.reservations);
+
+        // Check for reservations canceled due to hotel removal
+        const canceledReservations = data.reservations.filter(
+          r => r.status === 'cancelada_hotel_removido'
+        );
+
+        if (canceledReservations.length > 0) {
+          for (const r of canceledReservations) {
+            await showConfirm(
+              'Atenção',
+              `O hotel "${r.hotel_nome_backup || 'Desconhecido'}" foi removido da plataforma e sua reserva foi cancelada.`,
+              'Entendi'
+            );
+
+            // Delete the reservation after notification
+            try {
+              await fetch(`${API_BASE_URL}/reservations/${r.id || r._id}`, {
+                method: 'DELETE',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                },
+              });
+            } catch (error) {
+              console.error('Erro ao limpar reserva cancelada:', error);
+            }
+          }
+          // Refresh list
+          fetchReservations();
+        }
       }
     } catch (error) {
       console.error('Erro ao carregar reservas:', error);
@@ -195,7 +224,7 @@ const MinhasReservas = () => {
                         <Calendar className="w-3 h-3" /> Check-in
                       </p>
                       <p className="font-semibold text-purple-800 dark:text-purple-200">
-                        {new Date(reservation.check_in).toLocaleDateString('pt-BR')}
+                        {new Date(reservation.check_in).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
                       </p>
                     </div>
                     <div>
@@ -203,7 +232,7 @@ const MinhasReservas = () => {
                         <Calendar className="w-3 h-3" /> Check-out
                       </p>
                       <p className="font-semibold text-purple-800 dark:text-purple-200">
-                        {new Date(reservation.check_out).toLocaleDateString('pt-BR')}
+                        {new Date(reservation.check_out).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
                       </p>
                     </div>
                     <div>
