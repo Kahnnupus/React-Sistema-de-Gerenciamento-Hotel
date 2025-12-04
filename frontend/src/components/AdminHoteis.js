@@ -41,7 +41,7 @@ const AdminHoteis = () => {
 
       if (data.success) {
         console.log('Hotéis carregados:', data.hotels.length, 'hotéis');
-        console.log('Rejeitados:', data.hotels.filter(h => h.rejeitado).length);
+        console.log('Rejeitados:', data.hotels.filter(h => h.status === 'rejeitado').length);
         setHotels(data.hotels);
       }
     } catch (error) {
@@ -129,9 +129,9 @@ const AdminHoteis = () => {
   };
 
   const filteredHotels = hotels.filter(hotel => {
-    if (filter === 'aprovados') return hotel.aprovado;
-    if (filter === 'pendentes') return !hotel.aprovado && !hotel.rejeitado;
-    if (filter === 'rejeitados') return hotel.rejeitado;
+    if (filter === 'aprovados') return hotel.status === 'aprovado' || (hotel.aprovado && hotel.status !== 'rejeitado');
+    if (filter === 'pendentes') return (hotel.status === 'pendente' || (!hotel.aprovado && hotel.status !== 'rejeitado'));
+    if (filter === 'rejeitados') return hotel.status === 'rejeitado';
     return true;
   });
 
@@ -180,7 +180,7 @@ const AdminHoteis = () => {
             }`}
         >
           <CheckCircle className="w-4 h-4" />
-          Aprovados ({hotels.filter(h => h.aprovado).length})
+          Aprovados ({hotels.filter(h => h.status === 'aprovado' || (h.aprovado && h.status !== 'rejeitado')).length})
         </button>
         <button
           onClick={() => setFilter('pendentes')}
@@ -190,7 +190,7 @@ const AdminHoteis = () => {
             }`}
         >
           <Clock className="w-4 h-4" />
-          Pendentes ({hotels.filter(h => !h.aprovado && !h.rejeitado).length})
+          Pendentes ({hotels.filter(h => h.status === 'pendente' || (!h.aprovado && h.status !== 'rejeitado')).length})
         </button>
         <button
           onClick={() => setFilter('rejeitados')}
@@ -200,7 +200,7 @@ const AdminHoteis = () => {
             }`}
         >
           <XCircle className="w-4 h-4" />
-          Rejeitados ({hotels.filter(h => h.rejeitado).length})
+          Rejeitados ({hotels.filter(h => h.status === 'rejeitado').length})
         </button>
       </div>
 
@@ -232,12 +232,12 @@ const AdminHoteis = () => {
                     </p>
                   </div>
                   <div>
-                    {hotel.rejeitado ? (
+                    {hotel.status === 'rejeitado' ? (
                       <span className="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1">
                         <XCircle className="w-4 h-4" />
                         Reprovado
                       </span>
-                    ) : hotel.aprovado ? (
+                    ) : hotel.status === 'aprovado' || hotel.aprovado ? (
                       <span className="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1">
                         <CheckCircle className="w-4 h-4" />
                         Aprovado
@@ -274,7 +274,7 @@ const AdminHoteis = () => {
 
                 {/* Ações */}
                 <div className="flex gap-2 mt-4 flex-wrap">
-                  {!hotel.aprovado && (
+                  {hotel.status !== 'aprovado' && !hotel.aprovado && (
                     <button
                       onClick={() => handleAprovar(hotel.id || hotel._id)}
                       className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md transition-colors flex items-center gap-2"
@@ -283,7 +283,7 @@ const AdminHoteis = () => {
                       Aprovar
                     </button>
                   )}
-                  {hotel.aprovado && (
+                  {(hotel.status === 'aprovado' || hotel.aprovado) && (
                     <button
                       onClick={() => handleReprovar(hotel.id || hotel._id)}
                       className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md transition-colors flex items-center gap-2"
@@ -292,7 +292,7 @@ const AdminHoteis = () => {
                       Desaprovar
                     </button>
                   )}
-                  {!hotel.aprovado && !hotel.rejeitado && (
+                  {hotel.status !== 'rejeitado' && (hotel.status === 'pendente' || (!hotel.aprovado && hotel.status !== 'aprovado')) && (
                     <button
                       onClick={() => handleReprovar(hotel.id || hotel._id)}
                       className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md transition-colors flex items-center gap-2"

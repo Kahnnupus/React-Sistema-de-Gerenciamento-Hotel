@@ -21,6 +21,12 @@ const hotelSchema = new mongoose.Schema({
     imagem: {
         type: String
     },
+    status: {
+        type: String,
+        enum: ['pendente', 'aprovado', 'rejeitado'],
+        default: 'pendente'
+    },
+    // Mantendo aprovado por compatibilidade temporária, mas o status deve ser a fonte da verdade
     aprovado: {
         type: Boolean,
         default: false

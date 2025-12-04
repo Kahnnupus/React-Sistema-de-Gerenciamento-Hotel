@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { useFeedback } from "../contexts/FeedbackContext";
 import API_BASE_URL from "../config/api";
 
 const EditarReserva = () => {
   const { token, user } = useAuth();
+  const { showSuccess } = useFeedback();
   const navigate = useNavigate();
   const { reservationId } = useParams();
   const [reservation, setReservation] = useState(null);
@@ -125,7 +127,7 @@ const EditarReserva = () => {
       const data = await response.json();
 
       if (data.success) {
-        alert('Reserva atualizada com sucesso!');
+        showSuccess('Sucesso', 'Reserva atualizada com sucesso!');
         navigate('/minhas-reservas');
       } else {
         setError(data.message || 'Erro ao atualizar reserva');

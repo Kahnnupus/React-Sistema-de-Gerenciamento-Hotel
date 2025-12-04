@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import API_BASE_URL from "../config/api";
 
 const HotelContext = createContext();
@@ -15,19 +15,7 @@ export const HotelProvider = ({ children }) => {
   const [hotels, setHotels] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Carregar hotéis da API e configurar auto-refresh
-  useEffect(() => {
-    fetchHotels();
-
-    // Auto-refresh a cada 30 segundos
-    const interval = setInterval(() => {
-      fetchHotels();
-    }, 30000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  const fetchHotels = async () => {
+  const fetchHotels = useCallback(async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/hotels`);
       const data = await response.json();
@@ -40,19 +28,34 @@ export const HotelProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  // Carregar hotéis da API
+  useEffect(() => {
+    fetchHotels();
+  }, [fetchHotels]);
 
   const addHotel = async (hotel) => {
     try {
       const token = localStorage.getItem('token');
 
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+      };
+
+      let body;
+
+      if (hotel instanceof FormData) {
+        body = hotel;
+      } else {
+        headers['Content-Type'] = 'application/json';
+        body = JSON.stringify(hotel);
+      }
+
       const response = await fetch(`${API_BASE_URL}/hotels`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(hotel),
+        headers,
+        body,
       });
 
       const data = await response.json();

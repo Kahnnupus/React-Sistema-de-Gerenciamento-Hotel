@@ -1,16 +1,60 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useHotels } from "../contexts/HotelContext";
-import { ArrowLeft, MapPin, DollarSign, Check, Calendar, Users, BedDouble, AlertTriangle } from "lucide-react";
+import { ArrowLeft, MapPin, BedDouble, Check, Calendar } from "lucide-react";
+import API_BASE_URL from "../config/api";
 
 const HotelDetalhes = () => {
   const { id } = useParams();
   const navegar = useNavigate();
   const { hotels } = useHotels();
+  const [hotel, setHotel] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
-  const hotel = hotels.find((h) => h.id === parseInt(id, 10));
+  useEffect(() => {
+    const fetchHotel = async () => {
+      // Primeiro tenta encontrar no contexto global
+      const foundInContext = hotels.find((h) => h.id === id || h._id === id);
 
-  if (!hotel) {
+      if (foundInContext) {
+        setHotel(foundInContext);
+        setLoading(false);
+        return;
+      }
+
+      // Se não encontrar, busca da API
+      try {
+        const response = await fetch(`${API_BASE_URL}/hotels/${id}`);
+        const data = await response.json();
+
+        if (data.success) {
+          setHotel(data.hotel);
+        } else {
+          setError(true);
+        }
+      } catch (err) {
+        console.error("Erro ao buscar detalhes do hotel:", err);
+        setError(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHotel();
+  }, [id, hotels]);
+
+  if (loading) {
+    return (
+      <div className="min-h-[50vh] flex items-center justify-center">
+        <div className="text-purple-800 dark:text-purple-200 text-xl">
+          Carregando detalhes...
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !hotel) {
     return (
       <div className="animacao-fade-in text-center py-12">
         <h1 className="text-2xl font-bold text-purple-800 dark:text-purple-200 mb-4">
@@ -28,7 +72,7 @@ const HotelDetalhes = () => {
   }
 
   const guestCountFor = (h) => {
-    const key = `${h.id}-${h.nome}-${h.localizacao}`;
+    const key = `${h.id || h._id}-${h.nome}-${h.localizacao}`;
     let hash = 0;
     for (let i = 0; i < key.length; i++)
       hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
@@ -154,7 +198,7 @@ const HotelDetalhes = () => {
 
             <div className="mt-auto flex gap-4">
               <Link
-                to={`/reserva/${hotel.id}`}
+                to={`/reserva/${hotel.id || hotel._id}`}
                 className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-3 px-6 rounded-md transition-colors flex items-center gap-2"
               >
                 <Calendar className="w-5 h-5" />

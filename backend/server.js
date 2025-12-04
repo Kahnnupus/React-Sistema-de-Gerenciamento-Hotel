@@ -15,6 +15,7 @@ connectDB();
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use('/uploads', express.static('uploads'));
 
 // Importar rotas
 const authRoutes = require('./routes/auth');

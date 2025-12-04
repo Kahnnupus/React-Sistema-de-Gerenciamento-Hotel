@@ -15,6 +15,8 @@ const AddHotel = () => {
   const [descricao, setDescricao] = useState("");
   const [comodidadesTexto, setComodidadesTexto] = useState("");
   const [imagem, setImagem] = useState("");
+  const [imageSource, setImageSource] = useState("url"); // 'url' or 'file'
+  const [selectedFile, setSelectedFile] = useState(null);
 
   const [roomTypes, setRoomTypes] = useState([]);
   const [tipoAtual, setTipoAtual] = useState({
@@ -67,16 +69,34 @@ const AddHotel = () => {
       quantidade_disponivel: tipo.quantidade
     }));
 
-    const novoHotel = {
-      nome: nome.trim(),
-      localizacao: localizacao.trim(),
-      descricao: descricao.trim(),
-      imagem: imagem.trim(),
-      comodidades,
-      tipos_quartos
-    };
+    // Use FormData for file upload or URL
+    const formData = new FormData();
+    formData.append('nome', nome.trim());
+    formData.append('localizacao', localizacao.trim());
+    formData.append('descricao', descricao.trim());
 
-    const result = await addHotel(novoHotel);
+    if (imageSource === 'url') {
+      formData.append('imagem', imagem.trim());
+    } else if (selectedFile) {
+      formData.append('imagem', selectedFile);
+    }
+
+    // Append complex data as JSON strings
+    formData.append('comodidades', JSON.stringify(comodidades));
+    formData.append('tipos_quartos', JSON.stringify(tipos_quartos));
+
+    // We need to modify addHotel in HotelContext to handle FormData
+    // But wait, addHotel probably expects an object and sends JSON.
+    // I should check HotelContext.js.
+    // If I cannot change HotelContext easily, I might need to do the fetch here or update HotelContext.
+    // Let's assume I need to update HotelContext or pass a flag.
+    // For now, let's try to pass FormData to addHotel and see if it handles it.
+    // If addHotel does `JSON.stringify(hotelData)`, it will fail for FormData.
+
+    // Let's check HotelContext.js in the next step. For now, I will write the logic assuming I can pass FormData.
+    // Actually, I should verify HotelContext first.
+
+    const result = await addHotel(formData);
 
     if (result.success) {
       showSuccess('Sucesso', result.message || 'Hotel cadastrado com sucesso! Aguarde a aprovação do administrador.');
@@ -126,18 +146,53 @@ const AddHotel = () => {
             />
           </div>
 
-          <div>
+          <div className="col-span-1 md:col-span-2">
             <label className="block text-purple-700 dark:text-purple-300 mb-2 font-medium flex items-center gap-1">
               <Image className="w-4 h-4" />
-              Imagem (URL)
+              Imagem do Hotel
             </label>
-            <input
-              type="url"
-              value={imagem}
-              onChange={(e) => setImagem(e.target.value)}
-              placeholder="https://..."
-              className="w-full px-3 py-2 border border-purple-300 dark:border-purple-600 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-purple-100"
-            />
+
+            <div className="flex gap-4 mb-3">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="imageSource"
+                  value="url"
+                  checked={imageSource === 'url'}
+                  onChange={() => setImageSource('url')}
+                  className="text-purple-600 focus:ring-purple-500"
+                />
+                <span className="text-purple-800 dark:text-purple-200">URL da Imagem</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="imageSource"
+                  value="file"
+                  checked={imageSource === 'file'}
+                  onChange={() => setImageSource('file')}
+                  className="text-purple-600 focus:ring-purple-500"
+                />
+                <span className="text-purple-800 dark:text-purple-200">Upload de Arquivo</span>
+              </label>
+            </div>
+
+            {imageSource === 'url' ? (
+              <input
+                type="url"
+                value={imagem}
+                onChange={(e) => setImagem(e.target.value)}
+                placeholder="https://..."
+                className="w-full px-3 py-2 border border-purple-300 dark:border-purple-600 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-purple-100"
+              />
+            ) : (
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setSelectedFile(e.target.files[0])}
+                className="w-full px-3 py-2 border border-purple-300 dark:border-purple-600 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-purple-100 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 dark:file:bg-gray-600 dark:file:text-purple-200"
+              />
+            )}
           </div>
 
           <div>

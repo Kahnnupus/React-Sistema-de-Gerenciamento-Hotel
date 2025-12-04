@@ -2,21 +2,62 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useHotels } from "../contexts/HotelContext";
 import { useReservations } from "../contexts/ReservationContext";
+import { useAuth } from "../contexts/AuthContext";
 
 import { useFeedback } from "../contexts/FeedbackContext";
 import { ArrowLeft, MapPin, DollarSign, Calendar, Users, BedDouble, Check } from "lucide-react";
+import API_BASE_URL from "../config/api";
 
 const Reserva = () => {
   const { id } = useParams();
   const navegar = useNavigate();
   const { showSuccess } = useFeedback();
+  const { user } = useAuth();
 
   const { hotels } = useHotels();
   const { addReservation } = useReservations();
 
-  const hotel = hotels.find((h) => h.id === parseInt(id, 10));
+  const [hotel, setHotel] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // Redirecionar se não estiver logado
+  useEffect(() => {
+    if (!user) {
+      navegar("/register");
+    }
+  }, [user, navegar]);
+
+  // Buscar dados do hotel
+  useEffect(() => {
+    const fetchHotel = async () => {
+      // Tenta encontrar no contexto
+      const found = hotels.find((h) => h.id === id || h._id === id);
+      if (found) {
+        setHotel(found);
+        setLoading(false);
+        return;
+      }
+
+      // Se não encontrar, busca da API
+      try {
+        const response = await fetch(`${API_BASE_URL}/hotels/${id}`);
+        const data = await response.json();
+        if (data.success) {
+          setHotel(data.hotel);
+        }
+      } catch (error) {
+        console.error("Erro ao buscar hotel:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHotel();
+  }, [id, hotels]);
 
   const tiposPreparados = useMemo(() => {
+    if (!hotel) return [];
+
     // Backend returns tipos_quartos
     if (hotel?.tipos_quartos && hotel.tipos_quartos.length > 0) {
       return hotel.tipos_quartos.map((t, i) => ({
@@ -117,7 +158,7 @@ const Reserva = () => {
     if (noites <= 0) return;
 
     const success = await addReservation({
-      hotelId: hotel.id,
+      hotelId: hotel.id || hotel._id,
       hotelName: hotel.nome,
       ...dadosReserva,
       guests: Number(dadosReserva.guests || 0),
@@ -134,6 +175,16 @@ const Reserva = () => {
     showSuccess('Sucesso', 'Reserva realizada com sucesso!');
     navegar("/hoteis");
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-[50vh] flex items-center justify-center">
+        <div className="text-purple-800 dark:text-purple-200 text-xl">
+          Carregando...
+        </div>
+      </div>
+    );
+  }
 
   if (!hotel) {
     return (

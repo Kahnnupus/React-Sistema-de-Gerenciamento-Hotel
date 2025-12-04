@@ -181,10 +181,17 @@ const AdminHoteisPendentes = () => {
                                                 Proprietário: {hotel.proprietario_nome} ({hotel.proprietario_email})
                                             </p>
                                         </div>
-                                        <span className="bg-yellow-500 text-white px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1">
-                                            <Clock className="w-4 h-4" />
-                                            Pendente
-                                        </span>
+                                        {hotel.status === 'rejeitado' ? (
+                                            <span className="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1">
+                                                <XCircle className="w-4 h-4" />
+                                                Reprovado
+                                            </span>
+                                        ) : (
+                                            <span className="bg-yellow-500 text-white px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1">
+                                                <Clock className="w-4 h-4" />
+                                                Pendente
+                                            </span>
+                                        )}
                                     </div>
 
                                     <p className="text-purple-600 dark:text-purple-400 mb-3">

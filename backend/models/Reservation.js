@@ -51,11 +51,18 @@ const reservationSchema = new mongoose.Schema({
     },
     telefone_cliente: {
         type: String
+    },
+    hotel_nome_backup: {
+        type: String
     }
 }, {
     timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
     toJSON: { virtuals: true },
     toObject: { virtuals: true }
 });
+
+// Update enum separately or in schema definition if possible. 
+// Mongoose schema definition update:
+reservationSchema.path('status').enumValues.push('cancelada_hotel_removido', 'cancelada_hotel_rejeitado');
 
 module.exports = mongoose.model('Reservation', reservationSchema);
